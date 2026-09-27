@@ -164,6 +164,8 @@ export const Act1Fit: React.FC = () => {
             opacity: tw(f, CUE.yourWeek, CUE.doesntFit, 0, 1, E.smooth),
           }}
         />
+        {/* now line (under its label) */}
+        <div style={{ position: 'absolute', left: 960 - lineW / 2, top: nowY - 1.5, width: lineW, height: 3, background: C.red }} />
         {/* now label (same pill as in the app) */}
         <div
           style={{
@@ -184,8 +186,6 @@ export const Act1Fit: React.FC = () => {
         >
           {fmt(NOW)}
         </div>
-        {/* now line */}
-        <div style={{ position: 'absolute', left: 960 - lineW / 2, top: nowY - 1.5, width: lineW, height: 3, background: C.red }} />
         {/* line 1 */}
         <div
           style={{

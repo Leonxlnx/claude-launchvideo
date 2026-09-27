@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { AbsoluteFill, useCurrentFrame } from 'remotion';
+import { AbsoluteFill, Easing, useCurrentFrame } from 'remotion';
 import { measureTracked } from '../lib/measure';
 import { RackFocus } from '../fx/RackFocus';
 import { C, FONT } from '../brand/tokens';
@@ -7,7 +7,7 @@ import { MARK } from '../brand/Mark';
 import { E, mix, prog, rand, spr } from '../lib/anim';
 import { ACT, CUE } from '../timeline';
 import { APP, CalendarApp, COL, evRect, GRID, HOUR } from '../app/CalendarApp';
-import { FINAL, H0 } from '../app/data';
+import { FINAL, H0, TODAY } from '../app/data';
 import { APP_VIEW, WORD } from './Act2Mark';
 
 // ACT 6 — pull back into a quilt of perfectly packed weeks; "Everything fits." snaps together;
@@ -17,8 +17,8 @@ const L = (abs: number) => abs - ACT.end.from;
 
 // ---- quilt of weeks -------------------------------------------------------------------
 const PITCH = { x: GRID.w + 150, y: GRID.h + 150 };
-const COLS = 9;
-const ROWS = 7;
+const COLS = 11;
+const ROWS = 9;
 
 type Tile = { cx: number; cy: number; rects: { x: number; y: number; w: number; h: number; k: 0 | 1 | 2 }[] };
 
@@ -61,7 +61,14 @@ const TILES: Tile[] = (() => {
   return out;
 })();
 
-const Quilt: React.FC = () => {
+// The neighbouring weeks tessellate in as a wave that spreads out from ours: each card slides in
+// along its ray from the centre and snaps into the grid, then its blocks pack themselves.
+export const TILE_SPR = { damping: 15, stiffness: 150, mass: 0.7 };
+export const tileDist = (t: Pick<Tile, 'cx' | 'cy'>) => Math.hypot(t.cx, t.cy) / PITCH.x;
+export const tileDelay = (t: Pick<Tile, 'cx' | 'cy'>) => 22 + tileDist(t) * 21;
+export const QUILT_TILES = TILES.filter((t) => t.cx !== 0 || t.cy !== 0).map((t) => ({ cx: t.cx, cy: t.cy, dist: tileDist(t), delay: tileDelay(t) }));
+
+const Quilt: React.FC<{ f: number }> = ({ f }) => {
   // one SVG, in grid-space coordinates centered on the real week's grid
   const x0 = -((COLS - 1) / 2) * PITCH.x;
   const y0 = -((ROWS - 1) / 2) * PITCH.y;
@@ -75,27 +82,81 @@ const Quilt: React.FC = () => {
           <rect width="5" height="10" fill="#EEF0F2" />
         </pattern>
       </defs>
-      {TILES.map((t, ti) => (
-        <g key={ti} transform={`translate(${t.cx} ${t.cy})`}>
-          <rect x={-22} y={-4} width={GRID.w + 44} height={GRID.h + 44} rx={30} fill="rgba(11,11,12,0.05)" />
-          <rect x={-22} y={-22} width={GRID.w + 44} height={GRID.h + 44} rx={30} fill="#fff" stroke="rgba(11,11,12,0.07)" strokeWidth={2} />
-          {t.rects.map((q, qi) => (
-            <rect
-              key={qi}
-              x={q.x}
-              y={q.y}
-              width={q.w}
-              height={q.h}
-              rx={9}
-              fill={q.k === 1 ? C.ink : q.k === 2 ? 'url(#hatch)' : '#EEEFF2'}
-              stroke={q.k === 2 ? C.line2 : 'none'}
-            />
-          ))}
-        </g>
-      ))}
+      {TILES.map((t, ti) => {
+        const centre = t.cx === 0 && t.cy === 0;
+        const D = tileDelay(t);
+        const o = centre ? 1 : prog(f, D - 3, D + 7, E.smooth);
+        if (o <= 0) return null;
+        const k = centre ? 1 : spr(f, D, TILE_SPR);
+        const d = Math.max(1e-6, Math.hypot(t.cx, t.cy));
+        const push = (1 - k) * PITCH.x * 0.34;
+        const tx = t.cx + (t.cx / d) * push;
+        const ty = t.cy + (t.cy / d) * push;
+        const rot = (1 - k) * (rand(`tile-${ti}`) - 0.5) * 12;
+        const sc = mix(0.84, 1, k);
+        const cx = GRID.w / 2;
+        const cy = GRID.h / 2;
+        return (
+          <g key={ti} opacity={o} transform={`translate(${tx} ${ty}) rotate(${rot} ${cx} ${cy}) translate(${cx} ${cy}) scale(${sc}) translate(${-cx} ${-cy})`}>
+            <rect x={-22} y={-4} width={GRID.w + 44} height={GRID.h + 44} rx={30} fill="rgba(11,11,12,0.05)" />
+            <rect x={-22} y={-22} width={GRID.w + 44} height={GRID.h + 44} rx={30} fill="#fff" stroke="rgba(11,11,12,0.07)" strokeWidth={2} />
+            {t.rects.map((q, qi) => {
+              // the week packs itself: day by day, top to bottom, focus blocks last
+              const at = D + 8 + Math.floor(q.x / COL) * 2.2 + (q.y / HOUR) * 0.8 + (q.k === 1 ? 5 : 0);
+              const qo = prog(f, at, at + 9, E.out);
+              if (qo <= 0) return null;
+              return (
+                <rect
+                  key={qi}
+                  x={q.x}
+                  y={q.y - (1 - qo) * 40}
+                  width={q.w}
+                  height={q.h}
+                  rx={9}
+                  opacity={qo}
+                  fill={q.k === 1 ? C.ink : q.k === 2 ? 'url(#hatch)' : '#EEEFF2'}
+                  stroke={q.k === 2 ? C.line2 : 'none'}
+                />
+              );
+            })}
+          </g>
+        );
+      })}
     </svg>
   );
 };
+
+// ---- camera ---------------------------------------------------------------------------------
+export const PULL_EASE = Easing.bezier(0.5, 0, 0.12, 1);
+const HOP_EASE = Easing.bezier(0.45, 0, 0.25, 1);
+export const PULL_END = L(CUE.converge) + 60;
+const PERSP = 2400;
+const camAt = (f: number) => {
+  const pb = prog(f, 0, PULL_END, PULL_EASE);
+  const drift = f / 300;
+  return {
+    s: Math.exp(mix(Math.log(APP_VIEW.s), Math.log(0.2), pb) - 0.1 * drift),
+    rx: mix(0, 22, pb),
+    rz: mix(0, -7, pb) - 1.8 * drift,
+    O: { x: mix(APP.W / 2, GRID.x + GRID.w / 2, pb), y: mix(APP.H / 2, GRID.y + GRID.h / 2, pb) },
+  };
+};
+/** Screen position + local scale of an app-space point under the pull-back camera (matches the CSS transform). */
+export const project = (f: number, p: { x: number; y: number }) => {
+  const { s, rx, rz, O } = camAt(f);
+  const a = (rz * Math.PI) / 180;
+  const b = (rx * Math.PI) / 180;
+  const vx = (p.x - O.x) * s;
+  const vy = (p.y - O.y) * s;
+  const x1 = vx * Math.cos(a) - vy * Math.sin(a);
+  const y1 = vx * Math.sin(a) + vy * Math.cos(a);
+  const y2 = y1 * Math.cos(b);
+  const z2 = y1 * Math.sin(b);
+  const k = PERSP / (PERSP - z2);
+  return { x: 960 + x1 * k, y: 540 + y2 * k, s: s * k };
+};
+const NOW_END = 14.3; // the replanned Monday's clock at the end of the features act
+export const NOW_PT = { x: GRID.x + TODAY * COL, y: GRID.y + (NOW_END - H0) * HOUR };
 
 // ---- the scene --------------------------------------------------------------------------
 type R = { x: number; y: number; w: number; h: number };
@@ -104,15 +165,12 @@ const lerpR = (a: R, b: R, t: number): R => ({ x: mix(a.x, b.x, t), y: mix(a.y, 
 export const Act6End: React.FC = () => {
   const f = useCurrentFrame();
 
-  // pull back: app (APP_VIEW) → quilt, zooming in log space so the speed feels even
-  const pb = prog(f, 0, L(CUE.converge) + 50, E.outSoft);
-  const s = Math.exp(mix(Math.log(APP_VIEW.s), Math.log(0.2), pb));
-  const rx = mix(0, 22, pb);
-  const rz = mix(0, -7, pb);
-  const O = { x: mix(APP.W / 2, GRID.x + GRID.w / 2, pb), y: mix(APP.H / 2, GRID.y + GRID.h / 2, pb) };
+  // pull back: app (APP_VIEW) → quilt, zooming in log space so the speed feels even.
+  // The previous shot lands at rest, so this one starts from rest; a slow constant drift keeps
+  // the camera alive through the hold.
+  const { s, rx, rz, O } = camAt(f);
   // the window becomes a tile before its neighbours appear
   const chrome = 1 - prog(f, 4, 34, E.smooth);
-  const quiltIn = prog(f, 26, 64, E.smooth);
 
   // rack focus to the line (cross-faded so it never snaps)
   const rack = prog(f, L(CUE.everything) - 20, L(CUE.everything) + 30, E.smooth);
@@ -137,7 +195,10 @@ export const Act6End: React.FC = () => {
 
   // the words become blocks, the blocks become the mark
   const asm = L(CUE.lockupEnd);
-  const fill = prog(f, asm - 4, asm + 8, E.out); // words fill with ink → two blocks
+  // words are struck through with ink, left to right → two blocks
+  const fillA = prog(f, asm - 4, asm + 6, E.out);
+  const fillB = prog(f, asm - 1, asm + 6, E.out);
+  const fill = fillA;
   const morph = prog(f, asm + 6, asm + 40, E.inOut); // blocks → mark pieces
   const M1 = 140;
   const wm = useMemo(() => ({ width: measureTracked('tessel', WORD.size, WORD.weight, WORD.track) }), []);
@@ -167,10 +228,24 @@ export const Act6End: React.FC = () => {
   const markDot = { x: mx + MARK.D.cx * u, y: my + MARK.D.cy * u, r: MARK.D.r * u };
   const final = L(CUE.final);
   const blink = f > final ? 1 + 0.16 * Math.sin(Math.min(1, (f - final) / 16) * Math.PI) : 1;
+  // before that it is still the calendar's now dot: it never shrinks with the pull back, and it
+  // hops across to become the period exactly as "fits" locks
+  const nowP = project(f, NOW_PT);
+  const periodRest = { x: px - w2x, y: py };
+  // a ballistic hop: it clears the incoming word and drops into the slot right after "fits" locks
+  const hop = prog(f, meetAt - 28, meetAt, E.linear);
+  const nowR = Math.max(5.6, 6 * nowP.s) * mix(1, 1.55, prog(f, 30, 150, E.smooth));
+  const hx = 1 - Math.pow(1 - hop, 2.2);
+  const period = {
+    x: mix(nowP.x, periodRest.x, hx),
+    y: mix(nowP.y, periodRest.y, hop * hop) - 190 * 4 * hop * (1 - hop),
+    r: mix(nowR, dotD / 2, HOP_EASE(hop)),
+  };
+  if (hop >= 1) Object.assign(period, { x: periodPos.x, y: periodPos.y, r: (dotD / 2) * punch });
   const dot = {
-    x: mix(periodPos.x, markDot.x, morph),
-    y: mix(periodPos.y, markDot.y, morph),
-    r: mix((dotD / 2) * punch, markDot.r, morph) * blink,
+    x: mix(period.x, markDot.x, morph),
+    y: mix(period.y, markDot.y, morph),
+    r: mix(period.r, markDot.r, morph) * blink,
   };
   const wordIn = prog(f, asm + 50, asm + 86, E.out);
   const urlIn = prog(f, asm + 78, asm + 104, E.out);
@@ -186,13 +261,13 @@ export const Act6End: React.FC = () => {
         width: APP.W,
         height: APP.H,
         transformOrigin: `${O.x}px ${O.y}px`,
-        transform: `perspective(2400px) rotateX(${rx}deg) rotateZ(${rz}deg) scale(${s})`,
+        transform: `perspective(${PERSP}px) rotateX(${rx}deg) rotateZ(${rz}deg) scale(${s})`,
       }}
     >
-      <div style={{ position: 'absolute', left: GRID.x, top: GRID.y, opacity: quiltIn }}>
-        <Quilt />
+      <div style={{ position: 'absolute', left: GRID.x, top: GRID.y }}>
+        <Quilt f={f} />
       </div>
-      <CalendarApp events={events} chrome={chrome} frame={chrome} nowO={1} shadow prioIn={[1, 1, 1]} clashes={12} clashO={1} resolved={1} status={1} now={14.3} />
+      <CalendarApp events={events} chrome={chrome} frame={chrome} nowO={1} shadow prioIn={[1, 1, 1]} clashes={12} clashO={1} resolved={1} status={1} now={NOW_END} />
     </div>
   );
 
@@ -203,7 +278,7 @@ export const Act6End: React.FC = () => {
       <AbsoluteFill style={{ background: '#fff', opacity: rack * 0.82 * (1 - quiltGone) }} />
 
       {/* Everything fits. */}
-      <div style={{ position: 'absolute', left: 0, top: 0, width: 1920, height: 1080, transform: `scale(${punch})`, transformOrigin: '960px 540px', opacity: morph > 0.5 ? 0 : 1 }}>
+      <div style={{ position: 'absolute', left: 0, top: 0, width: 1920, height: 1080, transform: `scale(${punch})`, transformOrigin: '960px 540px', opacity: morph > 0 ? 0 : 1 }}>
         {[
           { t: 'Everything', x: lx + w1x },
           { t: 'fits', x: lx + m1.width + space + w2x },
@@ -273,22 +348,26 @@ export const Act6End: React.FC = () => {
           })()}
         {/* the two word-blocks → the mark's tall block and square */}
         {fill > 0 &&
-          [A, B].map((r, i) => (
-            <div
-              key={i}
-              style={{
-                position: 'absolute',
-                left: r.x,
-                top: r.y,
-                width: r.w,
-                height: r.h,
-                borderRadius: rad,
-                background: C.ink,
-                opacity: fill,
-                transform: morph === 0 ? `scale(${punch})` : undefined,
-              }}
-            />
-          ))}
+          [A, B].map((r, i) => {
+            const w = (i === 0 ? fillA : fillB) * r.w;
+            if (w <= 0) return null;
+            return (
+              <div
+                key={i}
+                style={{
+                  position: 'absolute',
+                  left: r.x,
+                  top: r.y,
+                  width: w,
+                  height: r.h,
+                  borderRadius: Math.min(rad, w / 2),
+                  background: C.ink,
+                  transformOrigin: `${r.w / 2}px ${r.h / 2}px`,
+                  transform: morph === 0 ? `scale(${punch})` : undefined,
+                }}
+              />
+            );
+          })}
         <div
           style={{
             position: 'absolute',
@@ -318,7 +397,6 @@ export const Act6End: React.FC = () => {
             height: dot.r * 2,
             borderRadius: '50%',
             background: C.red,
-            opacity: wordsO,
           }}
         />
       </AbsoluteFill>

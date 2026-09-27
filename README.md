@@ -24,14 +24,14 @@ shot to shot and never leaves the screen:
 | 0:10 | **Prompt** | The overbooked week loads and its twelve clashes flash. The command bar lifts off the app toward the lens, and *"Protect my mornings. Gym Tue + Thu. Ship the deck by Friday."* is typed. Each new letter arrives in red and settles to ink. Click. |
 | 0:14 | **The fitting** | The red field closes like a shutter into the *now* line. On a tabletop view of the week, every block lifts, flies and lands on the beat. Meetings that don't fit drift off to next week, and ink focus blocks drop in. The camera straightens on a clean week: *Week planned*. |
 | 0:18 | **Features** | The window shrinks into a live crop of the same week while a time-picker of lines rolls: *Moves meetings.* (with attendees' availability checks), *Guards your focus.* (an invite bounces off a protected block and is rebooked), *Replans in real time.* (a meeting runs 30 min over and Monday re-flows as the clock runs). |
-| 0:24 | **Everything fits.** | Pull back into a quilt of perfectly packed weeks. The two words slide in and lock. They fill with ink and become the mark's two blocks, and the red period drops into the dot's slot. Lockup. |
+| 0:24 | **Everything fits.** | Pull back. Neighbouring weeks tessellate around ours in a wave, each one packing itself. The two words slide in, and the *now* dot hops out of the week to land as their period. The words are struck through with ink and become the mark's two blocks, and the period drops into the dot's slot. Lockup. |
 
 ## Brand
 
 - **Name:** Tessel, from *tessellation*: pieces that fit together with no gaps.
 - **Mark:** three pieces that tile one square. A tall block, a square block, and the red *now* dot.
   It has one fully rounded corner, which makes it read at 16 px.
-- **Palette:** ink `#0B0B0C`, paper `#FFFFFF`, cool neutrals, and one accent, red `#F0282D`,
+- **Palette:** ink `#0B0B0C`, paper `#FFFFFF`, cool neutrals, and one accent, red `#EC2A3A`,
   used only for *now* and for things that just happened.
 - **Type:** Geist (sans) and Geist Mono. No serif, no italics.
 

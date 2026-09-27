@@ -9,6 +9,7 @@ import { RAIN } from '../src/acts/act1-data';
 import { KEY_FRAMES, PROMPT } from '../src/acts/Act3Prompt';
 import { LANDINGS } from '../src/acts/Act4Plan';
 import { BEFORE } from '../src/app/data';
+import { PULL_EASE, PULL_END, QUILT_TILES, TILE_SPR } from '../src/acts/Act6End';
 import { E } from '../src/lib/anim';
 
 type Ease = (t: number) => number;
@@ -61,17 +62,21 @@ const cues = {
   cascade,
   clashes: [0, 2, 4, 6, 8, 10, 12].map((k) => P + 34 + k),
   landings: LANDINGS.sort((a, b) => a.f - b.f),
+  // neighbouring weeks snapping into the quilt (the ones near enough to be seen)
+  quilt: QUILT_TILES.filter((t) => t.dist < 3.6)
+    .map((t) => ({ f: hit(endFrom + Math.round(t.delay), TILE_SPR), dist: +t.dist.toFixed(3), x: Math.sign(t.cx) }))
+    .sort((a, b) => a.f - b.f),
   // camera velocity peaks (whoosh apex goes here)
   peaks: {
     fly: markFrom + peak(flyS, ACT.mark.dur - 14, E.inOut),
     zoom: P + peak(CUE.zoomBar - P, CUE.zoomBar - P + 54, E.cam),
     macro: P + peak(CUE.typeEnd - P - 4, CUE.click - P - 2, E.inOut),
-    straighten: CUE.straighten + peak(0, 64, E.inOut),
+    straighten: CUE.straighten + peak(0, 64, E.inOut), // TODO(v6): peak(0, STRAIGHTEN_LEN, E.cam)
     cardMorph: feat + peak(0, 44, E.inOut),
     invite: feat + peak(F2 + 16, F2 + 44, E.out),
     inviteExit: feat + peak(F2 + 70, F2 + 96, E.inOut),
     back: feat + peak(ACT.feat.dur - 36, ACT.feat.dur, E.glide),
-    pullBack: endFrom + peak(0, CUE.converge - endFrom + 50, E.outSoft),
+    pullBack: endFrom + peak(0, PULL_END, PULL_EASE),
   },
   sfx: {
     markSnapA: hit(markFrom + 8, { damping: 17, stiffness: 230, mass: 0.8 }),
@@ -91,6 +96,7 @@ const cues = {
     f3LateSettle: feat + F3 + 64,
     f3ShiftSettle: feat + F3 + 80,
     wordsIn: CUE.fits - 22,
+    dotHop: CUE.fits - 28,
     fitsSnap: CUE.fits,
     wordsFill: endFrom + asm - 2,
     markMorph: endFrom + asm + 40,

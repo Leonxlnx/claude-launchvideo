@@ -256,8 +256,8 @@ export const CommandBar: React.FC<{
                   style={{
                     background: `rgba(11,11,12,${0.07 * (chipIn[i] ?? 0)})`,
                     borderRadius: 7,
-                    padding: '1px 6px',
-                    margin: '0 2px',
+                    padding: '1px 5px',
+                    margin: '0 0 0 1px',
                     position: 'relative',
                     fontWeight: 540,
                     whiteSpace: 'pre',
@@ -267,7 +267,7 @@ export const CommandBar: React.FC<{
                   {t.text}
                 </span>
               ) : (
-                <span key={i} style={{ whiteSpace: 'pre', color: t.color }}>
+                <span key={i} style={{ whiteSpace: 'pre', color: t.color, marginLeft: text[i - 1]?.chip && /^[.,]/.test(t.text) ? -1 : 0 }}>
                   {t.text}
                 </span>
               ),
@@ -577,7 +577,7 @@ export const GridLines: React.FC<{ reveal?: number }> = ({ reveal = 1 }) => {
   );
 };
 
-const Gutter: React.FC = () => {
+const Gutter: React.FC<{ now: number; nowO: number }> = ({ now, nowO }) => {
   const hours = [];
   for (let h = Math.ceil(H0 + 0.01); h < H1; h++) hours.push(h);
   return (
@@ -594,6 +594,8 @@ const Gutter: React.FC = () => {
             fontSize: 11.5,
             fontWeight: 460,
             color: C.mute,
+            // the now pill replaces the hour label it would collide with, as real calendars do
+            opacity: 1 - nowO * Math.max(0, Math.min(1, (22 - Math.abs(h - now) * HOUR) / 6)),
           }}
         >
           {String(h).padStart(2, '0')}:00
@@ -706,7 +708,7 @@ export const CalendarApp: React.FC<AppProps> = ({
       <Sidebar prioIn={prioIn} />
       <TopBar clashes={clashes} clashO={clashO} resolved={resolved} />
       <DayHeader />
-      <Gutter />
+      <Gutter now={now} nowO={nowO} />
       <NowLabel o={nowO} now={now} />
     </div>
     <div

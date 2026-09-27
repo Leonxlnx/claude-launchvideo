@@ -658,12 +658,30 @@ def build_sfx():
 
     # Act 6 — pull back, the fit, the words become the mark, lockup
     place_at_peak(fx, whoosh(2.0, 150, 1200, 250, 0.18, 1.0), 0.18, fr(pk['pullBack']) + 0.1, 0.26)
+    # the neighbouring weeks snap into the quilt: an ordered echo of the opening rain, tuned to Fm9
+    # and rising as the wave spreads out (one voice per landing moment, sparser and quieter outward)
+    groups = []
+    for q in CUES['quilt']:
+        if groups and q['f'] - groups[-1]['f'] <= 2:
+            groups[-1]['n'] += 1
+            groups[-1]['x'] += q['x']
+        else:
+            groups.append(dict(f=q['f'], n=1, x=q['x'], dist=q['dist']))
+    ladder = [80, 84, 87, 89, 91, 92, 96, 99]
+    for i, g in enumerate(groups):
+        m = ladder[min(len(ladder) - 1, int(round(g['dist'] * 2)) - 1)]
+        pan = max(-0.7, min(0.7, 0.35 * g['x'] / g['n'] + (0.25 if i % 2 else -0.25)))
+        fade = 1.0 - 0.45 * i / max(1, len(groups) - 1)
+        place(fx, tock(mtof(m) * 1.02, 0.1, 0.018, 0.15), fr(g['f']), 0.07 * fade * min(1.6, g['n'] ** 0.35), pan=pan)
+        place(fx, fm_bell(m, 0.6, 0.5, 2.0, 0.11), fr(g['f']), 0.035 * fade, pan=pan)
     rz = 3.2
     place(fx, riser(rz, 150, 7000, True, 51), fr(c['fits']) - 0.2 - rz, 0.16)
+    place(fx, blip(622.25, True, 0.12), fr(s['dotHop']), 0.10, pan=0.2)
     place(fx, whoosh(0.4, 300, 2500, 800, 0.8, -0.8), fr(s['wordsIn']), 0.12)
     place(fx, whoosh(0.4, 300, 2500, 800, 0.8, 0.8), fr(s['wordsIn']), 0.12)
     place(fx, snap(0.8, 1.0), fr(s['fitsSnap']), 0.55)
     place(fx, sub_boom(3.0, 103.8, 51.9), fr(s['fitsSnap']), 0.35)
+    place(fx, whoosh(0.2, 1200, 5200, 2500, 0.45, 0.6, 0.25), fr(s['wordsFill']) - 0.04, 0.07)
     place(fx, tock(420, 0.3, 0.06, 1.0), fr(s['wordsFill']), 0.16)
     place(fx, snap(0.6, 0.9), fr(s['markMorph']), 0.40)
     place(fx, whoosh(0.55, 500, 3500, 1200, 0.35, 0.6), fr(s['lockup2']) - 0.1, 0.10)
@@ -796,11 +814,12 @@ def main():
     mix[-480:] = 0
 
     import soundfile as sf
-    sf.write(os.path.join(ROOT, 'public', 'audio', 'soundtrack.wav'), mix.astype(np.float32), SR, subtype='PCM_24')
+    out = os.environ.get('SOUNDTRACK_OUT', os.path.join(ROOT, 'public', 'audio', 'soundtrack.wav'))
+    sf.write(out, mix.astype(np.float32), SR, subtype='PCM_24')
     for k in ('drums', 'bass', 'pad', 'arp', 'bells'):
         sf.write(os.path.join(ROOT, 'out', 'stems', f'{k}.wav'), m[k][: len(mix)].astype(np.float32), SR)
     sf.write(os.path.join(ROOT, 'out', 'stems', 'sfx.wav'), fx[: len(mix)].astype(np.float32), SR)
-    print('wrote public/audio/soundtrack.wav', f'{len(mix) / SR:.2f}s', 'peak', float(np.max(np.abs(mix))))
+    print('wrote', os.path.relpath(out, ROOT), f'{len(mix) / SR:.2f}s', 'peak', float(np.max(np.abs(mix))))
 
 
 if __name__ == '__main__':
