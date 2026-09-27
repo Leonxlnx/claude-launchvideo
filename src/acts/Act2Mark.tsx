@@ -89,7 +89,7 @@ export const Act2Mark: React.FC = () => {
   };
 
   // wordmark + descriptor
-  const wordOut = prog(f, flyS - 16, flyS + 2, E.out);
+  const wordOut = prog(f, flyS - 20, flyS + 2, E.in); // departures start slow
   const wordIn = prog(f, L(CUE.lockup) + 14, L(CUE.lockup) + 50, E.out);
   const sideTone = mix(255, 250, fly);
 
@@ -201,7 +201,7 @@ export const Act2Mark: React.FC = () => {
             height: A.h,
             background: `rgb(${sideTone},${sideTone},${mix(255, 251, fly)})`,
             borderRadius: `${mix(rPiece, rWin, fly)}px ${mix(rPiece, 0, fly)}px ${mix(rPiece, 0, fly)}px ${mix(rPiece, rWin, fly)}px`,
-            transform: `translate(${(1 - sa) * -760}px, ${(1 - sa) * 140}px) rotate(${(1 - sa) * -18}deg)`,
+            transform: `translate(${(1 - sa) * -1150}px, ${(1 - sa) * 140}px) rotate(${(1 - sa) * -18}deg)`,
           }}
         />
         {/* piece B (square) → calendar */}

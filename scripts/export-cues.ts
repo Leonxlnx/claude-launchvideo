@@ -9,8 +9,7 @@ import { RAIN } from '../src/acts/act1-data';
 import { KEY_FRAMES, PROMPT } from '../src/acts/Act3Prompt';
 import { LANDINGS, STRAIGHTEN_LEN } from '../src/acts/Act4Plan';
 import { BEFORE } from '../src/app/data';
-import { PULL_EASE, PULL_END, QUILT_TILES, TILE_SPR } from '../src/acts/Act6End';
-import { samplesAt } from '../src/blur';
+import { HOP, MORPH, PULL_EASE, PULL_END, QUILT_TILES, SHUT_AT, SHUT_SPR, STRIKE, TILE_SPR } from '../src/acts/Act6End';
 import { E } from '../src/lib/anim';
 
 type Ease = (t: number) => number;
@@ -97,16 +96,17 @@ const cues = {
     f3LateSettle: feat + F3 + 64,
     f3ShiftSettle: feat + F3 + 80,
     wordsIn: CUE.fits - 22,
-    dotHop: CUE.fits - 28,
+    dotHop: endFrom + HOP.from + 4, // first frame the dot visibly leaves the line
+    quiltShut: hit(endFrom + SHUT_AT, SHUT_SPR),
+    strikeA: endFrom + STRIKE.a + 2,
+    strikeB: endFrom + STRIKE.b + 2,
     fitsSnap: CUE.fits,
-    wordsFill: endFrom + asm - 2,
-    markMorph: endFrom + asm + 40,
+    wordsFill: endFrom + STRIKE.a + 14, // the lines start to swell into blocks
+    markMorph: endFrom + MORPH.to, // the pieces land with velocity: impact frame
     lockup2: endFrom + asm + 56,
     finalBlink: CUE.final,
   },
 };
 mkdirSync('out', { recursive: true });
 writeFileSync('out/cues.json', JSON.stringify(cues, null, 1));
-// how many sub-frames make up each output frame of the motion-blurred master (scripts/accumulate.py)
-writeFileSync('out/subframes.json', JSON.stringify({ groups: Array.from({ length: TOTAL }, (_, f) => samplesAt(f).length) }));
 console.log('wrote out/cues.json', Object.keys(cues.sfx).length, 'sfx cues;', 'peaks', JSON.stringify(cues.peaks));

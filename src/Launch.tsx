@@ -6,15 +6,10 @@ import { Act3Prompt } from './acts/Act3Prompt';
 import { Act4Plan } from './acts/Act4Plan';
 import { Act5Features } from './acts/Act5Features';
 import { Act6End } from './acts/Act6End';
-import { Grain } from './fx/Grain';
 import { FontGate } from './lib/FontGate';
 
-export const GRAIN = 0.028;
-
-export type LaunchProps = { grain?: boolean };
-
 // The film. Acts hand off on exact frames; every seam is a designed match, not a cut.
-export const Launch: React.FC<LaunchProps> = ({ grain = true }) => (
+export const Launch: React.FC = () => (
   <FontGate>
     <AbsoluteFill style={{ background: '#fff' }}>
       <Sequence from={ACT.fit.from} durationInFrames={ACT.fit.dur} name="1 · Doesn't fit">
@@ -35,7 +30,6 @@ export const Launch: React.FC<LaunchProps> = ({ grain = true }) => (
       <Sequence from={ACT.end.from} durationInFrames={ACT.end.dur} name="6 · Everything fits">
         <Act6End />
       </Sequence>
-      {grain && <Grain opacity={GRAIN} />}
       <Audio src={staticFile('audio/soundtrack.wav')} />
     </AbsoluteFill>
   </FontGate>

@@ -3,3 +3,4 @@ out/*
 !out/cues.json
 .DS_Store
 *.log
+__pycache__/

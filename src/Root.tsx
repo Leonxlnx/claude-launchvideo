@@ -1,8 +1,7 @@
 import { Composition, Folder } from 'remotion';
 import { FontGate } from './lib/FontGate';
 import { Launch } from './Launch';
-import { LaunchSub } from './LaunchSub';
-import { SUBFRAMES } from './blur';
+import { LaunchSub, subMetadata } from './LaunchSub';
 import { Act1Fit } from './acts/Act1Fit';
 import { Act2Mark } from './acts/Act2Mark';
 import { Act3Prompt } from './acts/Act3Prompt';
@@ -22,9 +21,18 @@ const wrap = (C: React.FC) => () => (
 export const RemotionRoot: React.FC = () => (
   <>
     {/* The film. */}
-    <Composition id="Launch" component={Launch} durationInFrames={TOTAL} fps={FPS} width={W} height={H} defaultProps={{ grain: true }} />
+    <Composition id="Launch" component={Launch} durationInFrames={TOTAL} fps={FPS} width={W} height={H} />
     {/* The film as sub-frames for the motion-blurred master (scripts/render.sh --blur averages them). */}
-    <Composition id="LaunchSub" component={LaunchSub} durationInFrames={SUBFRAMES.length} fps={FPS} width={W} height={H} />
+    <Composition
+      id="LaunchSub"
+      component={LaunchSub}
+      durationInFrames={TOTAL}
+      fps={FPS}
+      width={W}
+      height={H}
+      defaultProps={{ groups: [] as number[] }}
+      calculateMetadata={subMetadata}
+    />
 
     {/* Each act on its own, for iterating without scrubbing the whole film. */}
     <Folder name="Acts">

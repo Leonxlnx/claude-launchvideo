@@ -56,11 +56,13 @@ npm run render            # final: cues → soundtrack → sub-frames → motion
 npm run render:preview    # same, without motion blur (≈6× faster)
 ```
 
-**Motion blur** is done the way a film camera does it. Inside the fast-move windows in
-`src/blur.ts`, Remotion renders the film at several sub-frame times across a 240° shutter (the
-`LaunchSub` composition), and `scripts/accumulate.py` averages them in floating point and quantizes
-once. Compositing the samples inside Chromium instead quantizes every sample to 8 bits, which
-turns soft gradients into contour rings and tints light greys, so it is not used.
+**Motion blur** is done the way a film camera does it. A sharp render is measured with optical
+flow (`scripts/measure-speed.py`), and every frame gets enough samples across a 240° shutter that
+neighbouring samples are at most 3 px apart (up to 48 on the fastest moves, one on still frames).
+Remotion renders those sub-frames (the `LaunchSub` composition), and `scripts/accumulate.py`
+averages them in floating point, dithers, and quantizes once. Compositing the samples inside
+Chromium instead quantizes every sample to 8 bits, which turns soft gradients into contour rings
+and tints light greys, so it is not used.
 
 The picture is rendered muted and the soundtrack is muxed with ffmpeg. Remotion's own AAC mux
 leaves ~2.5 frames of encoder priming in the stream, and `scripts/check-sync.py` fails the build if
@@ -74,17 +76,18 @@ Python needs `numpy scipy soundfile pyloudnorm`. Rendering uses headless Chromiu
 ```
 src/
   timeline.ts          single source of truth: acts + beat-locked cues (60 fps, 120 BPM)
-  Launch.tsx           the film (acts in sequence, grain, audio)
-  blur.ts, LaunchSub.tsx  motion-blur windows and the sub-frame stream they need
+  Launch.tsx           the film (acts in sequence, audio)
+  blur.ts, LaunchSub.tsx  motion-blur shutter and the sub-frame stream it needs
   brand/               tokens, the mark
   app/                 the Tessel calendar UI (real, data-driven components) + week data
   acts/                Act1Fit … Act6End
-  fx/                  rack focus, word reveals, cursor, grain
+  fx/                  rack focus, word reveals, cursor
   lib/                 easing library, springs, font gate, DOM text measurement
 scripts/
   export-cues.ts       exports every sync point for the soundtrack
   soundtrack.py        score + sound design synthesizer
   render.sh            render (optionally motion-blurred) + ffmpeg mux + sync check
+  measure-speed.py     optical flow → motion-blur samples per frame
   accumulate.py        averages sub-frames into the motion-blurred master
   check-sync.py        verifies audio/picture alignment in a rendered file
   audio_balance.py     octave-band spectrum comparison

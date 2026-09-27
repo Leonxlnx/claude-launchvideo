@@ -68,7 +68,14 @@ export const tileDist = (t: Pick<Tile, 'cx' | 'cy'>) => Math.hypot(t.cx, t.cy) /
 export const tileDelay = (t: Pick<Tile, 'cx' | 'cy'>) => 22 + tileDist(t) * 21;
 export const QUILT_TILES = TILES.filter((t) => t.cx !== 0 || t.cy !== 0).map((t) => ({ cx: t.cx, cy: t.cy, dist: tileDist(t), delay: tileDelay(t) }));
 
+// Once the wave is in, the gutters close: the quilt snaps shut into one continuous surface.
+export const SHUT_AT = 140; // act-local frame the gutters start closing
+export const SHUT_SPR = { damping: 18, stiffness: 170, mass: 1 };
+
 const Quilt: React.FC<{ f: number }> = ({ f }) => {
+  const shut = spr(f, SHUT_AT, SHUT_SPR);
+  const g = mix(150, 50, shut); // gutter between cards (cards carry a 22-unit margin each side)
+  const cardR = mix(30, 12, shut);
   // one SVG, in grid-space coordinates centered on the real week's grid
   const x0 = -((COLS - 1) / 2) * PITCH.x;
   const y0 = -((ROWS - 1) / 2) * PITCH.y;
@@ -85,21 +92,24 @@ const Quilt: React.FC<{ f: number }> = ({ f }) => {
       {TILES.map((t, ti) => {
         const centre = t.cx === 0 && t.cy === 0;
         const D = tileDelay(t);
-        const o = centre ? 1 : prog(f, D - 3, D + 7, E.smooth);
+        // the centre card only appears as the window chrome fades, so it never peeks out under the window
+        const o = centre ? prog(f, 8, 34, E.smooth) : prog(f, D - 3, D + 7, E.smooth);
         if (o <= 0) return null;
         const k = centre ? 1 : spr(f, D, TILE_SPR);
         const d = Math.max(1e-6, Math.hypot(t.cx, t.cy));
         const push = (1 - k) * PITCH.x * 0.34;
-        const tx = t.cx + (t.cx / d) * push;
-        const ty = t.cy + (t.cy / d) * push;
+        const gx = (t.cx / PITCH.x) * (GRID.w + g);
+        const gy = (t.cy / PITCH.y) * (GRID.h + g);
+        const tx = gx + (t.cx / d) * push;
+        const ty = gy + (t.cy / d) * push;
         const rot = (1 - k) * (rand(`tile-${ti}`) - 0.5) * 12;
         const sc = mix(0.84, 1, k);
         const cx = GRID.w / 2;
         const cy = GRID.h / 2;
         return (
           <g key={ti} opacity={o} transform={`translate(${tx} ${ty}) rotate(${rot} ${cx} ${cy}) translate(${cx} ${cy}) scale(${sc}) translate(${-cx} ${-cy})`}>
-            <rect x={-22} y={-4} width={GRID.w + 44} height={GRID.h + 44} rx={30} fill="rgba(11,11,12,0.05)" />
-            <rect x={-22} y={-22} width={GRID.w + 44} height={GRID.h + 44} rx={30} fill="#fff" stroke="rgba(11,11,12,0.07)" strokeWidth={2} />
+            <rect x={-22} y={-4} width={GRID.w + 44} height={GRID.h + 44} rx={cardR} fill={`rgba(11,11,12,${0.05 * (1 - shut)})`} />
+            <rect x={-22} y={-22} width={GRID.w + 44} height={GRID.h + 44} rx={cardR} fill="#fff" stroke="rgba(11,11,12,0.07)" strokeWidth={2} />
             {t.rects.map((q, qi) => {
               // the week packs itself: day by day, top to bottom, focus blocks last
               const at = D + 8 + Math.floor(q.x / COL) * 2.2 + (q.y / HOUR) * 0.8 + (q.k === 1 ? 5 : 0);
@@ -128,7 +138,14 @@ const Quilt: React.FC<{ f: number }> = ({ f }) => {
 
 // ---- camera ---------------------------------------------------------------------------------
 export const PULL_EASE = Easing.bezier(0.5, 0, 0.12, 1);
-const HOP_EASE = Easing.bezier(0.45, 0, 0.25, 1);
+// finale timing (act-local frames), shared with the cue export
+const ASM = L(CUE.lockupEnd);
+export const STRIKE = { a: ASM - 16, b: ASM - 10 };
+export const MORPH = { from: ASM + 10, to: ASM + 30 }; // lands on the beat after the strike
+export const MORPH_EASE = Easing.bezier(0.55, 0, 0.9, 0.55); // accelerates in, arrives with velocity
+export const HOP = { from: L(CUE.fits) - 30, to: L(CUE.fits) };
+const HOP_LAUNCH = Easing.bezier(0.35, 0, 0.75, 1);
+const HOP_EASE = Easing.bezier(0.45, 0, 0.25, 1); // dot radius during the hop
 export const PULL_END = L(CUE.converge) + 60;
 const PERSP = 2400;
 const camAt = (f: number) => {
@@ -173,7 +190,7 @@ export const Act6End: React.FC = () => {
   const chrome = 1 - prog(f, 4, 34, E.smooth);
 
   // rack focus to the line (cross-faded so it never snaps)
-  const rack = prog(f, L(CUE.everything) - 20, L(CUE.everything) + 30, E.smooth);
+  const rack = prog(f, L(CUE.everything) + 6, L(CUE.fits) - 4, E.smooth);
   const quiltGone = prog(f, L(CUE.lockupEnd) - 30, L(CUE.lockupEnd), E.smooth);
 
   // "Everything fits." — two words slide in and lock (no overshoot past the lock)
@@ -195,14 +212,19 @@ export const Act6End: React.FC = () => {
 
   // the words become blocks, the blocks become the mark
   const asm = L(CUE.lockupEnd);
-  // words are struck through with ink, left to right → two blocks
-  const fillA = prog(f, asm - 4, asm + 6, E.out);
-  const fillB = prog(f, asm - 1, asm + 6, E.out);
+  // each word is struck through with an ink line, left to right; the line then swells into a block
+  const fillA = prog(f, STRIKE.a, STRIKE.a + 16, E.inOut);
+  const fillB = prog(f, STRIKE.b, STRIKE.b + 14, E.inOut);
+  const swellA = prog(f, STRIKE.a + 14, STRIKE.a + 26, E.out);
+  const swellB = prog(f, STRIKE.b + 12, STRIKE.b + 24, E.out);
   const fill = fillA;
   // a slow push while the line holds, so it never sits dead still before the strike
   const k = punch * mix(1, 1.03, prog(f, meetAt, asm - 4, E.linear));
   const sc = (r: R): R => ({ x: 960 + (r.x - 960) * k, y: 540 + (r.y - 540) * k, w: r.w * k, h: r.h * k });
-  const morph = prog(f, asm + 6, asm + 40, E.inOut); // blocks → mark pieces
+  // blocks → mark pieces: they accelerate into place and land with an impact on the beat
+  const morph = prog(f, MORPH.from, MORPH.to, MORPH_EASE);
+  const impact = (f - MORPH.to) / 16;
+  const markPunch = impact > 0 && impact < 1 ? 1 + 0.035 * Math.sin(impact * Math.PI) : 1;
   const M1 = 140;
   const wm = useMemo(() => ({ width: measureTracked('tessel', WORD.size, WORD.weight, WORD.track) }), []);
   const gap = 34;
@@ -210,19 +232,24 @@ export const Act6End: React.FC = () => {
   const lockX = 960 - lockW / 2;
   const lk = prog(f, asm + 38, asm + 74, E.inOut);
   const MS = 230;
-  const size = mix(MS, M1, lk);
+  const size = mix(MS, M1, lk) * markPunch;
   const mx = mix(960 - MS / 2, lockX, lk);
   const my = 540 - size / 2 - 38 * lk;
   const u = size / 100;
-  const top = baseY - SIZE * 0.74;
-  const bh = SIZE * 0.94;
-  const wordA: R = sc({ x: lx + w1x - 10, y: top - 6, w: m1.width + 16, h: bh });
-  const wordB: R = sc({ x: lx + m1.width + space + w2x - 10, y: top - 6, w: m2.width + 16, h: bh });
+  // the block covers every glyph (ascenders to descenders); the line sits on the x-height
+  const blockTop = baseY - SIZE * 0.8;
+  const blockH = SIZE * 1.04;
+  const lineH = SIZE * 0.11;
+  const lineTop = baseY - SIZE * 0.36 - lineH / 2;
+  const strikeBox = (x: number, w: number, sw: number): R => ({ x, y: mix(lineTop, blockTop, sw), w, h: mix(lineH, blockH, sw) });
+  const wordA: R = sc(strikeBox(lx + w1x - 10, m1.width + 16, swellA));
+  // B stops short of the period so the dot never overlaps it
+  const wordB: R = sc(strikeBox(lx + m1.width + space + w2x - 10, m2.width + 11, swellB));
   const pieceA: R = { x: mx + MARK.A.x * u, y: my + MARK.A.y * u, w: MARK.A.w * u, h: MARK.A.h * u };
   const pieceB: R = { x: mx + MARK.B.x * u, y: my + MARK.B.y * u, w: MARK.B.w * u, h: MARK.B.h * u };
   const A = lerpR(wordA, pieceA, morph);
   const B = lerpR(wordB, pieceB, morph);
-  const rad = mix(16, MARK.r * u, morph);
+  const rad = mix(mix(lineH / 2, 16, Math.min(swellA, swellB)), MARK.r * u, morph);
 
   // the red period slides into the mark's dot slot
   const px = lx + m1.width + space + m2.width + dotD * 0.62 + w2x;
@@ -234,27 +261,31 @@ export const Act6End: React.FC = () => {
   // before that it is still the calendar's now dot: it never shrinks with the pull back, and it
   // hops across to become the period exactly as "fits" locks
   const nowP = project(f, NOW_PT);
-  const periodRest = { x: px - w2x, y: py };
-  // a ballistic hop: it clears the incoming word and drops into the slot right after "fits" locks
-  const hop = prog(f, meetAt - 28, meetAt, E.linear);
+  const periodRest = { x: 960 + (px - w2x - 960) * k, y: 540 + (py - 540) * k };
+  // a ballistic hop: it eases off the line, arcs over the incoming word and drops into the slot
+  // from above-right just after "fits" locks (the bow keeps it clear of the 's')
+  const hop = prog(f, HOP.from, HOP.to, HOP_LAUNCH);
   const nowR = Math.max(5.6, 6 * nowP.s) * mix(1, 1.55, prog(f, 30, 150, E.smooth));
   const hx = 1 - Math.pow(1 - hop, 2.2);
   const period = {
-    x: mix(nowP.x, periodRest.x, hx),
+    x: mix(nowP.x, periodRest.x, hx) + 60 * Math.sin(Math.PI * hop),
     y: mix(nowP.y, periodRest.y, hop * hop) - 190 * 4 * hop * (1 - hop),
     r: mix(nowR, dotD / 2, HOP_EASE(hop)),
   };
   if (hop >= 1) Object.assign(period, { x: periodPos.x, y: periodPos.y, r: (dotD / 2) * k });
+  // the dot follows a few frames behind the blocks so B clears its path, and lands with them
+  const dmorph = prog(f, MORPH.from + 5, MORPH.to, MORPH_EASE);
   const dot = {
-    x: mix(period.x, markDot.x, morph),
-    y: mix(period.y, markDot.y, morph),
-    r: mix(period.r, markDot.r, morph) * blink,
+    x: mix(period.x, markDot.x, dmorph),
+    y: mix(period.y, markDot.y, dmorph),
+    r: mix(period.r, markDot.r, dmorph) * blink,
   };
   const wordIn = prog(f, asm + 50, asm + 86, E.out);
   const urlIn = prog(f, asm + 78, asm + 104, E.out);
   const endPush = mix(1, 1.035, prog(f, asm + 60, ACT.end.dur, E.smooth));
 
-  const events = FINAL.map((ev) => ({ ev, s: { rect: evRect(ev) } }));
+  const textO = 1 - prog(f, 20, 70, E.smooth);
+  const events = FINAL.map((ev) => ({ ev, s: { rect: evRect(ev), textO } }));
   const world = () => (
     <div
       style={{
@@ -278,13 +309,13 @@ export const Act6End: React.FC = () => {
     <AbsoluteFill style={{ background: '#fff', overflow: 'hidden' }}>
       <AbsoluteFill style={{ background: '#EEEFF2', opacity: prog(f, 10, 60, E.smooth) * (1 - rack) }} />
       {quiltGone < 1 && <RackFocus t={rack} blur={9} render={world} style={{ opacity: 1 - quiltGone }} />}
-      <AbsoluteFill style={{ background: '#fff', opacity: rack * 0.82 * (1 - quiltGone) }} />
+      <AbsoluteFill style={{ background: '#fff', opacity: rack * 0.66 * (1 - quiltGone) }} />
 
       {/* Everything fits. */}
-      <div style={{ position: 'absolute', left: 0, top: 0, width: 1920, height: 1080, transform: `scale(${k})`, transformOrigin: '960px 540px', opacity: morph > 0 ? 0 : 1 }}>
+      <div style={{ position: 'absolute', left: 0, top: 0, width: 1920, height: 1080, transform: `scale(${k})`, transformOrigin: '960px 540px' }}>
         {[
-          { t: 'Everything', x: lx + w1x },
-          { t: 'fits', x: lx + m1.width + space + w2x },
+          { t: 'Everything', x: lx + w1x, gone: swellA >= 1 },
+          { t: 'fits', x: lx + m1.width + space + w2x, gone: swellB >= 1 },
         ].map((w) => (
           <div
             key={w.t}
@@ -299,7 +330,7 @@ export const Act6End: React.FC = () => {
               lineHeight: 1,
               color: C.ink,
               whiteSpace: 'nowrap',
-              opacity: wordsO,
+              opacity: w.gone ? 0 : wordsO,
             }}
           >
             {w.t}

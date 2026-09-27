@@ -69,8 +69,11 @@ const slice = (n: number, f: number): { tokens: Token[]; chipIndex: number[] } =
   PROMPT.forEach((t, ti) => {
     const vis = Math.max(0, Math.min(t.text.length, n - idx));
     if (t.chip) {
-      tokens.push({ text: t.text.slice(0, vis), chip: true, color: vis ? ink(f - CHAR_AT[idx + vis - 1]) : undefined });
-      chipIndex.push(ti);
+      // a chip only exists once its first character is typed (an empty chip would push the caret)
+      if (vis > 0) {
+        tokens.push({ text: t.text.slice(0, vis), chip: true, color: ink(f - CHAR_AT[idx + vis - 1]) });
+        chipIndex.push(ti);
+      }
     } else {
       for (let c = 0; c < vis; c++) {
         tokens.push({ text: t.text[c], color: ink(f - CHAR_AT[idx + c]) });
@@ -109,7 +112,13 @@ export const Act3Prompt: React.FC = () => {
   const SA = mix(mix(V.s * breathe, 1.6, z1), 1.78, z2);
   const startScreen = { x: V.x + focusApp.x * V.s * breathe, y: V.y + focusApp.y * V.s * breathe };
   const aScreen = { x: mix(startScreen.x, 960, z1), y: mix(mix(startScreen.y, 1045, z1), 1080, z2) };
-  const tx = aScreen.x - focusApp.x * SA;
+  // once the push starts, the (defocused) app keeps covering the frame horizontally: the bar sits
+  // right of the app's centre, so centring on it would otherwise leave the window's right edge in shot
+  const cover = prog(f, L(CUE.zoomBar), L(CUE.zoomBar) + 12, E.smooth);
+  const txRaw = aScreen.x - focusApp.x * SA;
+  const appW = APP.W * SA;
+  const txFit = appW >= 2000 ? Math.min(-40, Math.max(1960 - appW, txRaw)) : (1920 - appW) / 2;
+  const tx = mix(txRaw, txFit, cover);
   const ty = aScreen.y - focusApp.y * SA;
   // bar layer (its own transform: lifted in Z)
   const SB = mix(mix(V.s * breathe, 2.12 + typingPush, z1), 3.5, z2);
@@ -133,11 +142,13 @@ export const Act3Prompt: React.FC = () => {
   for (const e of events) if ((e.ev.lanes ?? 1) > 1) e.s.glow = clashT;
   const nowT = prog(f, 4, 34, E.out);
 
-  // typing
-  const n = typed(f);
-  const { tokens, chipIndex } = slice(n, f);
-  const chipIn = chipIndex.map((ti) => (ti >= 0 ? prog(f, tokenDone[ti] + 1, tokenDone[ti] + 12, E.out) : 0));
-  const caretOn = f < L(CUE.typeStart) ? Math.floor(f / 16) % 2 === 0 : f > L(CUE.typeEnd) + 6 ? Math.floor(f / 16) % 2 === 0 : true;
+  // typing. Keystrokes, the caret blink and ink ages are discrete states: they are evaluated on the
+  // whole frame, so every motion-blur sub-sample of a frame shows the same text.
+  const fd = Math.round(f);
+  const n = typed(fd);
+  const { tokens, chipIndex } = slice(n, fd);
+  const chipIn = chipIndex.map((ti) => (ti >= 0 ? prog(fd, tokenDone[ti] + 1, tokenDone[ti] + 12, E.out) : 0));
+  const caretOn = fd < 8 ? false : fd < L(CUE.typeStart) ? Math.floor(fd / 16) % 2 === 0 : fd > L(CUE.typeEnd) + 6 ? Math.floor(fd / 16) % 2 === 0 : true;
   const barFocus = prog(f, L(CUE.zoomBar) + 20, L(CUE.typeStart), E.out);
 
   // cursor → send → click
@@ -182,7 +193,7 @@ export const Act3Prompt: React.FC = () => {
               transformOrigin: '0 0',
             }}
           >
-            <CalendarApp events={events} nowO={1} lineT={nowT} hideBar clashes={12} clashO={prog(f, 36, 50, E.out)} shadow={false} />
+            <CalendarApp events={events} nowO={1} labelO={prog(f, 10, 24, E.out)} lineT={nowT} hideBar clashes={12} clashO={prog(f, 36, 50, E.out)} shadow={false} />
           </div>
         )}
       />

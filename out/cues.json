@@ -808,10 +808,13 @@
   "f3LateSettle": 1384,
   "f3ShiftSettle": 1400,
   "wordsIn": 1658,
-  "dotHop": 1652,
+  "dotHop": 1654,
+  "quiltShut": 1595,
+  "strikeA": 1726,
+  "strikeB": 1732,
   "fitsSnap": 1680,
   "wordsFill": 1738,
-  "markMorph": 1780,
+  "markMorph": 1770,
   "lockup2": 1796,
   "finalBlink": 1890
  }

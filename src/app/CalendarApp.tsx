@@ -58,6 +58,7 @@ export type EvStyle = {
   glow?: number; // 0..1 red outline (clash)
   ring?: number; // 0..1 ink outline ("just moved")
   inkT?: number; // 0..1 morph from light (task/meeting) styling to focus (ink)
+  textO?: number; // label opacity (fades micro-text out when the block gets tiny on screen)
 };
 
 const kindStyle = (kind: Ev['kind']): React.CSSProperties => {
@@ -130,6 +131,7 @@ export const EventBlock: React.FC<{ ev: Ev; s: EvStyle; flat?: boolean; noLiftSh
           gap: short ? 8 : 3,
           alignItems: short ? 'center' : 'flex-start',
           whiteSpace: 'nowrap',
+          opacity: s.textO ?? 1,
         }}
       >
         <span style={{ fontSize: 13.5, fontWeight: 580, letterSpacing: '-0.01em', lineHeight: 1.15 }}>{ev.title}</span>
@@ -256,7 +258,7 @@ export const CommandBar: React.FC<{
                   style={{
                     background: `rgba(11,11,12,${0.07 * (chipIn[i] ?? 0)})`,
                     borderRadius: 7,
-                    padding: '1px 5px',
+                    padding: '1px 4px',
                     margin: '0 0 0 1px',
                     position: 'relative',
                     fontWeight: 540,
@@ -267,7 +269,7 @@ export const CommandBar: React.FC<{
                   {t.text}
                 </span>
               ) : (
-                <span key={i} style={{ whiteSpace: 'pre', color: t.color, marginLeft: text[i - 1]?.chip && /^[.,]/.test(t.text) ? -1 : 0 }}>
+                <span key={i} style={{ whiteSpace: 'pre', color: t.color, marginLeft: text[i - 1]?.chip && /^[.,]/.test(t.text) ? -2 : 0 }}>
                   {t.text}
                 </span>
               ),
@@ -632,6 +634,7 @@ const NowLabel: React.FC<{ o?: number; now?: number }> = ({ o = 1, now = NOW }) 
       borderRadius: 6,
       padding: '3px 6px',
       opacity: o,
+      transform: `translateX(${(1 - o) * -6}px)`,
     }}
   >
     {fmt(now)}
@@ -651,6 +654,7 @@ export type AppProps = {
   barFocus?: number;
   prioIn?: number[];
   nowO?: number;
+  labelO?: number; // the now pill (defaults to nowO)
   chrome?: number; // 0..1 fade for everything but the grid content
   flat?: boolean; // no 3D in events
   gridChildren?: React.ReactNode; // extra layers inside the grid (e.g. landing shadows)
@@ -675,6 +679,7 @@ export const CalendarApp: React.FC<AppProps> = ({
   barFocus,
   prioIn = [0, 0, 0],
   nowO = 1,
+  labelO,
   chrome = 1,
   flat,
   gridChildren,
@@ -709,7 +714,7 @@ export const CalendarApp: React.FC<AppProps> = ({
       <TopBar clashes={clashes} clashO={clashO} resolved={resolved} />
       <DayHeader />
       <Gutter now={now} nowO={nowO} />
-      <NowLabel o={nowO} now={now} />
+      <NowLabel o={labelO ?? nowO} now={now} />
     </div>
     <div
       style={{
