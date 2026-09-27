@@ -121,6 +121,13 @@ export const Act4Plan: React.FC = () => {
     }
   }
 
+  // the planned week clicks in: one left-to-right ripple across every block, on the toast bells
+  for (const b of blocks) {
+    const at = L(CUE.toast) + b.ev.day * 2.5;
+    const w = f >= at && f < at + 12 ? Math.sin(((f - at) / 12) * Math.PI) : 0;
+    if (w > 0) b.s.scale = (b.s.scale ?? 1) * (1 + 0.03 * w);
+  }
+
   // ground shadows (drawn on the grid plane)
   const shadows = blocks
     .filter((b) => b.shadow.z > 1 && (b.s.opacity ?? 1) > 0.02)

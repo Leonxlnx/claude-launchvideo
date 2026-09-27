@@ -18,13 +18,13 @@ shot to shot and never leaves the screen:
 
 | Time | Act | What happens |
 | --- | --- | --- |
-| 0:00 | **Doesn't fit** | The dot ticks like a Swiss clock and draws a day. Meetings rain in, faster and faster. "doesn't fit." slams in too big for the frame, then everything implodes back into the dot. |
-| 0:06 | **Mark** | The dot's shockwave floods the frame black. Two blocks snap around it to form the Tessel mark, and the wordmark slides out from behind it. |
-| 0:09 | **Logo becomes product** | The tall block opens into the app's sidebar and the square into the calendar. The dot flies to the red *now* line: Monday, 08:42. |
-| 0:10 | **Prompt** | The overbooked week loads and its twelve clashes flash. The command bar lifts off the app toward the lens, and *"Protect my mornings. Gym Tue + Thu. Ship the deck by Friday."* is typed. Each new letter arrives in red and settles to ink. Click. |
+| 0:00 | **Doesn't fit** | The film opens close on the *now* dot: a red disc that pulls back into the marker as the day draws out of it. It ticks like a Swiss clock. Meetings rain in and pile up on top of each other, faster and faster. "doesn't fit." slams in too big for the frame, then everything implodes back into the dot. |
+| 0:06 | **Mark** | The dot's shockwave floods the frame black. Two blocks snap around it to form the Tessel mark, and the wordmark slides out from behind it. The dot keeps the clock on every beat. |
+| 0:09 | **Logo becomes product** | The tall block opens into the app's sidebar and the square into the calendar, and the overbooked week loads inside them as they open. The dot flies to the red *now* line: Monday, 08:42. |
+| 0:10 | **Prompt** | The week's clashes flash day by day on the downbeat. The command bar lifts off the app toward the lens, and *"Protect my mornings. Gym Tue + Thu. Ship the deck by Friday."* is typed. Each new letter arrives in red and settles to ink. Click. |
 | 0:14 | **The fitting** | The red field closes like a shutter into the *now* line. On a tabletop view of the week, every block lifts, flies and lands on the beat. Meetings that don't fit drift off to next week, and ink focus blocks drop in. The camera straightens on a clean week: *Week planned*. |
 | 0:18 | **Features** | The window shrinks into a live crop of the same week while a time-picker of lines rolls: *Moves meetings.* (with attendees' availability checks), *Guards your focus.* (an invite bounces off a protected block and is rebooked), *Replans in real time.* (a meeting runs 30 min over and Monday re-flows as the clock runs). |
-| 0:24 | **Everything fits.** | Pull back. Neighbouring weeks tessellate around ours in a wave, each one packing itself. The two words slide in, and the *now* dot hops out of the week to land as their period. The words are struck through with ink and become the mark's two blocks, and the period drops into the dot's slot. Lockup. |
+| 0:24 | **Everything fits.** | Pull back. Neighbouring weeks tessellate around ours in a wave, each one packing itself, and then the gaps close into one surface. The two words slide in, and the *now* dot hops out of the week to land as their period. Each word is struck through with ink, the lines swell into the mark's two blocks, and the period drops into the dot's slot. Lockup, and the clock ticks twice. |
 
 ## Brand
 
