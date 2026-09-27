@@ -202,9 +202,9 @@ export const Act3Prompt: React.FC = () => {
       <div
         style={{
           position: 'absolute',
-          left: bx + BAR.x * SB,
-          top: by + BAR.y * SB,
-          transform: `scale(${SB})`,
+          left: 0,
+          top: 0,
+          transform: `translate(${bx + BAR.x * SB}px, ${by + BAR.y * SB}px) scale(${SB})`,
           filter: `drop-shadow(0 ${30 * lift}px ${50 * lift}px rgba(11,11,12,${0.22 * lift}))`,
           transformOrigin: '0 0',
         }}

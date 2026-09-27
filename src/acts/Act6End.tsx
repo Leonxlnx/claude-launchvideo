@@ -290,12 +290,13 @@ export const Act6End: React.FC = () => {
     <div
       style={{
         position: 'absolute',
-        left: 960 - O.x,
-        top: 540 - O.y,
+        left: 0,
+        top: 0,
         width: APP.W,
         height: APP.H,
-        transformOrigin: `${O.x}px ${O.y}px`,
-        transform: `perspective(${PERSP}px) rotateX(${rx}deg) rotateZ(${rz}deg) scale(${s})`,
+        // all translation lives in the matrix (no fractional left/top), so the slow drift never snaps to pixels
+        transformOrigin: '0 0',
+        transform: `translate(960px, 540px) perspective(${PERSP}px) rotateX(${rx}deg) rotateZ(${rz}deg) scale(${s}) translate(${-O.x}px, ${-O.y}px)`,
       }}
     >
       <div style={{ position: 'absolute', left: GRID.x, top: GRID.y }}>

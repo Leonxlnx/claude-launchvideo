@@ -156,12 +156,13 @@ export const Act4Plan: React.FC = () => {
       <div
         style={{
           position: 'absolute',
-          left: P.x - O.x,
-          top: P.y - O.y,
+          left: 0,
+          top: 0,
           width: APP.W,
           height: APP.H,
-          transformOrigin: `${O.x}px ${O.y}px`,
-          transform: `perspective(2600px) rotateZ(${rz}deg) rotateX(${rx}deg) scale(${s})`,
+          // all translation lives in the matrix (no fractional left/top), so slow moves never snap to pixels
+          transformOrigin: '0 0',
+          transform: `translate(${P.x}px, ${P.y}px) perspective(2600px) rotateZ(${rz}deg) rotateX(${rx}deg) scale(${s}) translate(${-O.x}px, ${-O.y}px)`,
           transformStyle: 'preserve-3d',
         }}
       >
