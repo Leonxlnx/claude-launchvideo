@@ -18,7 +18,6 @@ const F1 = L(CUE.feat1); // 0
 const F2 = L(CUE.feat2); // 120
 const F3 = L(CUE.feat3); // 240
 const END = ACT.feat.dur; // 360 (= Act 6 f0)
-const LAST = END - 1; // the close lands here, so the act's last frame is exactly Act 6's first
 
 export const A5 = {
   SPLIT: Easing.bezier(0.33, 0, 0.1, 1),
@@ -28,6 +27,7 @@ export const A5 = {
   DETENT: { damping: 24, stiffness: 380, mass: 0.6 },
   CHECK: { damping: 12, stiffness: 220, mass: 0.5 },
   CLOSE_AT: 326,
+  CLOSE_END: END - 1, // the close lands on the act's last frame, which is then exactly Act 6's first
   YAW: -12,
   PERSP: 2400,
 };
@@ -38,6 +38,7 @@ const STACKS = [
   ['Replans', 'in real time.'],
 ];
 export const LINES = STACKS.map((s) => s.join(' '));
+const LAST = A5.CLOSE_END;
 
 // beat sheet (act-local frames; kick on 0 and +75, clap on +60 of each bar)
 const DETENT_AT = [F1 + 20, F2 - 10, F3 - 10, END - 40]; // reel springs: land 30 / 120 / 240 / 330

@@ -656,16 +656,21 @@ def build_sfx():
     place(fx, fm_bell(87, 1.2, 1.2, 2.0, 0.35), fr(s['toast']), 0.09, pan=0.1)
     place(fx, fm_bell(92, 1.2, 1.0, 2.0, 0.35), fr(s['toast']) + 0.09, 0.07, pan=0.1)
 
-    # Act 5 — features (louder, and on the frames where things actually happen)
+    # Act 5 — features: the window splits open on its spine, one line clicks home per bar,
+    # payoffs on the clap, consequences on the kick
     place_at_peak(fx, whoosh(0.7, 300, 2000, 500, 0.5, 0.6), 0.5, fr(pk['cardMorph']), 0.24)
+    for key in ('featAB', 'featBC'):
+        place_at_peak(fx, whoosh(0.45, 400, 2400, 700, 0.4, 0.5), 0.4, fr(pk[key]), 0.16)
+    for f in s['ratchet']:  # the reel rolls: three ratchet ticks into each detent
+        for k in range(3):
+            place(fx, tick(2100 - k * 150, 0.04, 0.004, 0.6), fr(f) + k * 0.05, 0.14 - 0.03 * k, pan=-0.4)
+    for f in s['detents']:
+        place(fx, tock(1700, 0.06, 0.012, 0.3), fr(f), 0.10, pan=-0.4)
     place(fx, whoosh(0.35, 800, 2500, 1200, 0.5, 0.3), fr(s['f1Lift']), 0.12)
     place(fx, tock(1300, 0.12, 0.03, 0.4), fr(s['f1Land']), 0.30)
     for i, f in enumerate(s['f1Checks']):
         place(fx, tick(3400 + i * 260, 0.05, 0.01, 0.7), fr(f), 0.12, pan=0.3)
-    for f in (s['drum2'], s['drum3']):
-        for k in range(3):
-            place(fx, tick(2100 - k * 150, 0.04, 0.004, 0.6), fr(f) + k * 0.05, 0.16 - 0.04 * k, pan=-0.4)
-    place_at_peak(fx, whoosh(0.4, 600, 3000, 900, 0.3, 0.5), 0.3, fr(pk['invite']), 0.18)
+    place_at_peak(fx, whoosh(0.6, 2400, 500, 200, 0.75, 0.4), 0.75, fr(pk['invite']), 0.2)  # falls toward the page
     bt = tt(0.25)
     place(fx, np.sin(2 * np.pi * (170 + 90 * np.exp(-bt / 0.02)) * bt) * np.exp(-bt / 0.06), fr(s['f2Bounce']), 0.45)
     place(fx, tick(2600, 0.06, 0.01, 0.8), fr(s['f2Reply']), 0.15)

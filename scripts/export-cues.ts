@@ -11,6 +11,7 @@ import { loadAt } from '../src/app/weekLoad';
 import { HOLD_BEATS } from '../src/acts/Act2Mark';
 import { LANDINGS, STRAIGHTEN_LEN } from '../src/acts/Act4Plan';
 import { BEFORE } from '../src/app/data';
+import { FEAT_CUES as FC } from '../src/acts/Act5Features';
 import { HOP, MORPH, PULL_EASE, PULL_END, QUILT_TILES, SHUT_AT, SHUT_SPR, STRIKE, TILE_SPR } from '../src/acts/Act6End';
 import { E } from '../src/lib/anim';
 
@@ -38,9 +39,6 @@ const hit = (start: number, cfg: Partial<SpringConfig>) => {
 const cascade = BEFORE.map((ev) => Math.round(loadAt(ev) + 6)).sort((a, b) => a - b);
 const P = ACT.prompt.from;
 const feat = ACT.feat.from;
-const F1 = CUE.feat1 - feat;
-const F2 = CUE.feat2 - feat;
-const F3 = CUE.feat3 - feat;
 const endFrom = ACT.end.from;
 const asm = CUE.lockupEnd - endFrom;
 const markFrom = ACT.mark.from;
@@ -74,10 +72,12 @@ const cues = {
     zoom: P + peak(CUE.zoomBar - P, CUE.zoomBar - P + 54, E.cam),
     macro: P + peak(CUE.typeEnd - P - 4, CUE.click - P - 2, E.inOut),
     straighten: CUE.straighten + peak(0, STRAIGHTEN_LEN, E.cam),
-    cardMorph: feat + peak(0, 44, E.inOut),
-    invite: feat + peak(F2 + 16, F2 + 44, E.out),
-    inviteExit: feat + peak(F2 + 70, F2 + 96, E.inOut),
-    back: feat + peak(ACT.feat.dur - 36, ACT.feat.dur, E.glide),
+    cardMorph: feat + FC.split, // the window splits open on its sidebar seam
+    featAB: feat + FC.whipAB,
+    featBC: feat + FC.whipBC,
+    invite: feat + FC.invite, // the invite falls toward the page
+    inviteExit: feat + FC.inviteExit - 4, // it lifts away (fades before its velocity peak)
+    back: feat + FC.close,
     pullBack: endFrom + peak(0, PULL_END, PULL_EASE),
     lockup1: markFrom + peak(CUE.lockup - markFrom, CUE.lockup - markFrom + 34, E.inOut),
     lockup2: endFrom + peak(asm + 38, asm + 74, E.inOut),
@@ -90,16 +90,16 @@ const cues = {
     click: CUE.click,
     flood: CUE.redFill,
     toast: CUE.toast,
-    f1Lift: feat + F1 + 30,
-    f1Land: feat + F1 + 76,
-    f1Checks: [0, 1, 2, 3].map((i) => feat + F1 + 80 + i * 5),
-    drum2: CUE.feat2 - 4,
-    drum3: CUE.feat3 - 4,
-    f2Bounce: feat + F2 + 44,
-    f2Reply: feat + F2 + 54,
-    f3Late: feat + F3 + 26,
-    f3LateSettle: feat + F3 + 64,
-    f3ShiftSettle: feat + F3 + 80,
+    f1Lift: feat + FC.f1Lift,
+    f1Land: feat + FC.f1Land,
+    f1Checks: FC.f1Checks.map((x) => feat + x),
+    ratchet: FC.ratchet.map((x) => feat + x), // the line reel starts to roll
+    detents: FC.detents.map((x) => feat + x), // and clicks home
+    f2Bounce: feat + FC.f2Bounce,
+    f2Reply: feat + FC.f2Reply,
+    f3Late: feat + FC.f3Late,
+    f3LateSettle: feat + FC.f3LateSettle,
+    f3ShiftSettle: feat + FC.f3ShiftSettle,
     wordsIn: CUE.fits - 22,
     dotHop: endFrom + HOP.from + 4, // first frame the dot visibly leaves the line
     quiltShut: hit(endFrom + SHUT_AT, SHUT_SPR),
