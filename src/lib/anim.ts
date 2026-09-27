@@ -44,6 +44,14 @@ export const prog = (frame: number, from: number, to: number, ease: Ease = E.out
 export const mix = (a: number, b: number, t: number) => a + (b - a) * t;
 
 
+/**
+ * Attack-decay envelope for hits (ticks, pulses, punches): peaks `attack` frames after t = 0 so
+ * the picture peaks with its sound, then decays exponentially. Starts and ends with ~zero slope
+ * change, unlike a half-sine on a hard window.
+ */
+export const hitPulse = (t: number, attack = 2, tau = 5) =>
+  t <= 0 || t > attack + 6 * tau ? 0 : t < attack ? Math.sin((t / attack) * (Math.PI / 2)) : Math.exp(-(t - attack) / tau);
+
 export const SPR: Record<string, Partial<SpringConfig>> = {
   snap: { damping: 18, stiffness: 260, mass: 0.7 }, // locks into place w/ a small overshoot
   pop: { damping: 11, stiffness: 180, mass: 0.6 }, // playful overshoot
