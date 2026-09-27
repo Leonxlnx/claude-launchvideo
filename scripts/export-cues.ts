@@ -76,7 +76,7 @@ const cues = {
     featAB: feat + FC.whipAB,
     featBC: feat + FC.whipBC,
     invite: feat + FC.invite, // the invite falls toward the page
-    inviteExit: feat + FC.inviteExit - 4, // it lifts away (fades before its velocity peak)
+    inviteExit: feat + FC.inviteExit, // knocked aside, it accelerates off toward Friday
     back: feat + FC.close,
     pullBack: endFrom + peak(0, PULL_END, PULL_EASE),
     flood: P + ACT.prompt.dur - 4, // the red flood's edge is fastest just before it fills the frame
@@ -96,6 +96,7 @@ const cues = {
     f1Checks: FC.f1Checks.map((x) => feat + x),
     ratchet: FC.ratchet.map((x) => feat + x), // the line reel starts to roll
     detents: FC.detents.map((x) => feat + x), // and clicks home
+    reelExit: feat + FC.reelExit, // the last line rolls off before the window swings shut
     f2Bounce: feat + FC.f2Bounce,
     f2Reply: feat + FC.f2Reply,
     f3Late: feat + FC.f3Late,

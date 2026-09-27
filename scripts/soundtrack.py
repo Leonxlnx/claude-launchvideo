@@ -671,6 +671,7 @@ def build_sfx():
             place(fx, tick(2100 - k * 150, 0.04, 0.004, 0.6), fr(f) + k * 0.05, 0.14 - 0.03 * k, pan=-0.4)
     for f in s['detents']:
         place(fx, tock(1700, 0.06, 0.012, 0.3), fr(f), 0.10, pan=-0.4)
+    place(fx, whoosh(0.22, 900, 3200, 1400, 0.4, 0.4), fr(s['reelExit']), 0.08, pan=-0.4)
     place(fx, whoosh(0.35, 800, 2500, 1200, 0.5, 0.3), fr(s['f1Lift']), 0.12)
     place(fx, tock(1300, 0.12, 0.03, 0.4), fr(s['f1Land']), 0.30)
     for i, f in enumerate(s['f1Checks']):
