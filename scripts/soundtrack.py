@@ -588,10 +588,12 @@ def build_sfx():
     c, s, pk = C_, S_, PK
 
     # Act 1 — the clock: a soft tick-tock on every beat until the headline lands
-    place(fx, tick(3000, 0.08, 0.008, 0.8), 0.0, 0.12)
-    place(fx, sub_boom(0.6, 87.3, 43.65, 0.08), 0.0, 0.22)  # F2 -> F1 under the first tick (bar 1: Fm)
-    place(fx, whoosh(1.3, 2600, 900, 250, 0.12, 0.3, 0.08), 0.0, 0.07)  # the disc contracts
-    for k in range(1, 8):
+    # the film opens on a full red field that irises down onto the dot: a low hit on the red,
+    # the iris sweeping in (fastest ~f8), and the clock's first tick as the dot lands (f30)
+    place(fx, sub_boom(0.6, 87.3, 43.65, 0.08), 0.0, 0.22)  # F2 -> F1 (bar 1: Fm)
+    place_at_peak(fx, whoosh(0.55, 700, 3600, 900, 0.25, 0.4, 0.1), 0.25, fr(8), 0.14)
+    place(fx, tick(3000, 0.08, 0.008, 0.8), fr(c['dotIn']), 0.13)
+    for k in range(2, 8):
         place(fx, tick(3000 if k % 2 else 2250, 0.06, 0.006, 0.6), k * BEAT, 0.055 + 0.01 * (k % 2), pan=-0.15 if k % 2 else 0.15)
     place(fx, whoosh(0.5, 2000, 7000, 3000, 0.3, 0.5), fr(c['lineDraw']) - 0.02, 0.05)
     for k in range(9):
@@ -616,6 +618,8 @@ def build_sfx():
     place(fx, snap(0.6, 0.8, mtof(37)), fr(s['markSnapA']), 0.42, pan=-0.2)  # over Db
     place(fx, snap(0.6, 1.0, mtof(37)), fr(s['markSnapB']), 0.46, pan=0.2)
     place_at_peak(fx, whoosh(0.55, 500, 3500, 1200, 0.35, 0.6), 0.35, fr(pk['lockup1']), 0.12)
+    # the wordmark tucks back behind the mark (fastest just before the fly)
+    place_at_peak(fx, whoosh(0.32, 2800, 700, 300, 0.8, 0.4), 0.8, fr(c['flyIn']) - 2 / FPS, 0.09)
     for i, at in enumerate(s['holdBeats']):  # the dot keeps the clock through the lockup hold
         place(fx, tick(3000 if i % 2 == 0 else 2250, 0.08, 0.008, 0.8), fr(at), 0.16, pan=0.15 if i % 2 else -0.15)
     place_at_peak(fx, whoosh(0.6, 250, 1800, 400, 0.6, 1.0), 0.6, fr(pk['fly']), 0.40)

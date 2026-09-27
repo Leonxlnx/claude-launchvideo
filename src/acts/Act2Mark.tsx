@@ -1,5 +1,5 @@
 import React from 'react';
-import { AbsoluteFill, Easing, spring, SpringConfig, useCurrentFrame } from 'remotion';
+import { AbsoluteFill, Easing, Img, spring, SpringConfig, staticFile, useCurrentFrame } from 'remotion';
 import { measureTracked } from '../lib/measure';
 import { C, FONT } from '../brand/tokens';
 import { MARK } from '../brand/Mark';
@@ -147,9 +147,10 @@ export const Act2Mark: React.FC = () => {
   const rInner = mix(rPiece, 0, Math.max(fly, join)); // corners on the seam square off as the pieces join
   const radA = `${mix(rPiece, rWin, fly) / kk}px ${rInner / kk}px ${mix(rPiece, 0, fly) / kk}px ${mix(rPiece, rWin, fly) / kk}px`;
   const radB = `${rInner / kk}px ${mix(rPiece, rWin, fly) / kk}px ${mix(rPiece, rWin, fly) / kk}px ${mix(rPiece, 0, fly) / kk}px`;
-  // once both pieces are the window and the app inside is fully in, the masks and pieces are done:
-  // the app is drawn once, unclipped, with the very transform Act 3 opens on (a seamless cut)
-  const landed = fly >= 1 && appIn >= 1;
+  // once both pieces are the window (on the frame the move stops; the app inside is > 99.9% in by
+  // then), masks and pieces are done: the app is drawn once, opaque and unclipped, with the very
+  // transform Act 3 opens on, so the cut is seamless and the window's edge is the app's own
+  const landed = fly >= 1;
   const piece = (r: R, t = { x: 0, y: 0, r: 0 }): React.CSSProperties => {
     const w = r.w / kk;
     const h = r.h / kk;
@@ -184,7 +185,7 @@ export const Act2Mark: React.FC = () => {
   const wordOut = prog(f, EXIT.word[0], EXIT.word[1], E.in); // the entrance, reversed
   const descOut = prog(f, EXIT.desc[0], EXIT.desc[1], E.smooth);
   const sideTone = mix(255, 250, fly);
-  const shadow = Math.sin(Math.PI * fly); // depth while it flies; none once it is the app (as in Act 3)
+  const shadow = fly < 1 ? Math.sin(Math.PI * fly) : 0; // depth while it flies; none once it is the app (as in Act 3)
 
   return (
     <AbsoluteFill style={{ background: C.paper, overflow: 'hidden' }}>
@@ -200,12 +201,8 @@ export const Act2Mark: React.FC = () => {
           background: C.ink,
         }}
       />
-      <AbsoluteFill
-        style={{
-          background: 'radial-gradient(ellipse 70% 60% at 50% 45%, rgba(255,255,255,0.075), rgba(255,255,255,0) 70%)',
-          opacity: flood,
-        }}
-      />
+      {/* the soft glow, pre-dithered (a CSS gradient this subtle bands into rings) */}
+      <Img src={staticFile('fx/glow-ink.png')} style={{ position: 'absolute', left: 0, top: 0, width: 1920, height: 1080, opacity: flood }} />
 
       {/* type, in lockup space: the dolly is a transform on this layer, the layout never moves */}
       {f >= L(CUE.lockup) && wordOut < 1 && (
@@ -276,7 +273,7 @@ export const Act2Mark: React.FC = () => {
 
       {/* the mark (the lock-in punch applies to the whole assembly) */}
       <AbsoluteFill style={{ transform: punch !== 1 ? `scale(${punch})` : undefined, transformOrigin: '960px 540px' }}>
-        {fly > 0 && (
+        {fly > 0 && !landed && (
           <div
             style={{
               position: 'absolute',

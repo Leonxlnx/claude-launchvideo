@@ -18,8 +18,8 @@ shot to shot and never leaves the screen:
 
 | Time | Act | What happens |
 | --- | --- | --- |
-| 0:00 | **Doesn't fit** | The film opens close on the *now* dot: a red disc that pulls back into the marker as the day draws out of it. It ticks like a Swiss clock. Meetings rain in and pile up on top of each other, faster and faster. "doesn't fit." slams in too big for the frame, then everything implodes back into the dot. |
-| 0:06 | **Mark** | The dot's shockwave floods the frame black. Two blocks snap around it to form the Tessel mark, and the wordmark slides out from behind it. The dot keeps the clock on every beat. |
+| 0:00 | **Doesn't fit** | The film opens on a full red field that irises down onto the *now* dot, and the dot starts ticking like a Swiss clock as the day draws out of it. Meetings rain in from 1.5s and pile up, faster and faster. "doesn't fit." slams in too big for the frame, then everything implodes back into the dot. |
+| 0:06 | **Mark** | The dot's shockwave floods the frame black. Two blocks snap around it to form the Tessel mark, and the wordmark slides out from behind it. The camera dollies in while the dot keeps the clock on every beat, then the wordmark tucks back behind the mark. |
 | 0:09 | **Logo becomes product** | The tall block opens into the app's sidebar and the square into the calendar, and the overbooked week loads inside them as they open. The dot flies to the red *now* line: Monday, 08:42. |
 | 0:10 | **Prompt** | The week's clashes flash day by day on the downbeat. The command bar lifts off the app toward the lens, and *"Protect my mornings. Gym Tue + Thu. Ship the deck by Friday."* is typed. Each new letter arrives in red and settles to ink. Click. |
 | 0:14 | **The fitting** | The red field closes like a shutter into the *now* line. On a tabletop view of the week, every block lifts, flies and lands on the beat. Meetings that don't fit drift off to next week, and ink focus blocks drop in. The camera straightens on a clean week: *Week planned*. |

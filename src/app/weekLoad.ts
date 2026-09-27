@@ -14,6 +14,8 @@ export const weekLoad = (abs: number) =>
     const p = prog(abs, at, at + 16, E.out);
     const sp = spr(abs, at, { damping: 15, stiffness: 240, mass: 0.6 });
     const r = evRect(ev);
-    return { ev, s: { rect: { ...r, y: r.y - (1 - sp) * 14 }, opacity: p, glow: 0 } as EvStyle };
+    // snap the spring's last sub-pixel tail to rest, so labels never shift on the act cut
+    const dy = Math.abs(1 - sp) < 0.01 ? 0 : (1 - sp) * 14;
+    return { ev, s: { rect: { ...r, y: r.y - dy }, opacity: p, glow: 0 } as EvStyle };
   });
 
