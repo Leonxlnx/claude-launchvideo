@@ -52,9 +52,15 @@ so every tick, snap, key click and block landing sits on its exact frame.
 ```bash
 npm install
 npm run studio            # interactive preview
-npm run render            # final: cues → soundtrack → picture (with motion blur) → mux → sync check
+npm run render            # final: cues → soundtrack → sub-frames → motion-blur accumulation → mux → sync check
 npm run render:preview    # same, without motion blur (≈6× faster)
 ```
+
+**Motion blur** is done the way a film camera does it. Inside the fast-move windows in
+`src/blur.ts`, Remotion renders the film at several sub-frame times across a 240° shutter (the
+`LaunchSub` composition), and `scripts/accumulate.py` averages them in floating point and quantizes
+once. Compositing the samples inside Chromium instead quantizes every sample to 8 bits, which
+turns soft gradients into contour rings and tints light greys, so it is not used.
 
 The picture is rendered muted and the soundtrack is muxed with ffmpeg. Remotion's own AAC mux
 leaves ~2.5 frames of encoder priming in the stream, and `scripts/check-sync.py` fails the build if
@@ -69,15 +75,17 @@ Python needs `numpy scipy soundfile pyloudnorm`. Rendering uses headless Chromiu
 src/
   timeline.ts          single source of truth: acts + beat-locked cues (60 fps, 120 BPM)
   Launch.tsx           the film (acts in sequence, grain, audio)
+  blur.ts, LaunchSub.tsx  motion-blur windows and the sub-frame stream they need
   brand/               tokens, the mark
   app/                 the Tessel calendar UI (real, data-driven components) + week data
   acts/                Act1Fit … Act6End
-  fx/                  camera, word reveals, cursor, grain, windowed motion blur
+  fx/                  rack focus, word reveals, cursor, grain
   lib/                 easing library, springs, font gate, DOM text measurement
 scripts/
   export-cues.ts       exports every sync point for the soundtrack
   soundtrack.py        score + sound design synthesizer
-  render.sh            final render + ffmpeg mux + sync check
+  render.sh            render (optionally motion-blurred) + ffmpeg mux + sync check
+  accumulate.py        averages sub-frames into the motion-blurred master
   check-sync.py        verifies audio/picture alignment in a rendered file
   audio_balance.py     octave-band spectrum comparison
   sheet.sh             contact sheets for frame-by-frame review

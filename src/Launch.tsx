@@ -6,66 +6,36 @@ import { Act3Prompt } from './acts/Act3Prompt';
 import { Act4Plan } from './acts/Act4Plan';
 import { Act5Features } from './acts/Act5Features';
 import { Act6End } from './acts/Act6End';
-import { BlurWindows } from './fx/BlurWindows';
 import { Grain } from './fx/Grain';
 import { FontGate } from './lib/FontGate';
 
-export type LaunchProps = { blur?: boolean; samples?: number };
+export const GRAIN = 0.028;
 
-// Fast moves that get real temporal motion blur (act-local frames). Everything else renders once.
-const WINDOWS: Record<string, ([number, number] | [number, number, number])[]> = {
-  fit: [[150, 329, 8], [330, 359]],
-  mark: [[0, 36], [176, 240]],
-  prompt: [[30, 86], [176, 239]],
-  plan: [[0, 26, 16], [27, 160, 16], [161, 239]],
-  feat: [[0, 44], [106, 136], [226, 256], [324, 359]],
-  end: [[0, 150], [214, 242], [300, 380]],
-};
-
-const Act: React.FC<{ id: keyof typeof ACT; blur: boolean; samples: number; children: React.ReactNode }> = ({ id, blur, samples, children }) =>
-  blur ? (
-    <BlurWindows windows={WINDOWS[id]} samples={samples} shutter={240}>
-      {children}
-    </BlurWindows>
-  ) : (
-    <>{children}</>
-  );
+export type LaunchProps = { grain?: boolean };
 
 // The film. Acts hand off on exact frames; every seam is a designed match, not a cut.
-export const Launch: React.FC<LaunchProps> = ({ blur = false, samples = 10 }) => (
+export const Launch: React.FC<LaunchProps> = ({ grain = true }) => (
   <FontGate>
     <AbsoluteFill style={{ background: '#fff' }}>
       <Sequence from={ACT.fit.from} durationInFrames={ACT.fit.dur} name="1 · Doesn't fit">
-        <Act id="fit" blur={blur} samples={samples}>
-          <Act1Fit />
-        </Act>
+        <Act1Fit />
       </Sequence>
       <Sequence from={ACT.mark.from} durationInFrames={ACT.mark.dur} name="2 · Mark">
-        <Act id="mark" blur={blur} samples={samples}>
-          <Act2Mark />
-        </Act>
+        <Act2Mark />
       </Sequence>
       <Sequence from={ACT.prompt.from} durationInFrames={ACT.prompt.dur} name="3 · Prompt">
-        <Act id="prompt" blur={blur} samples={samples}>
-          <Act3Prompt />
-        </Act>
+        <Act3Prompt />
       </Sequence>
       <Sequence from={ACT.plan.from} durationInFrames={ACT.plan.dur} name="4 · The fitting">
-        <Act id="plan" blur={blur} samples={samples}>
-          <Act4Plan />
-        </Act>
+        <Act4Plan />
       </Sequence>
       <Sequence from={ACT.feat.from} durationInFrames={ACT.feat.dur} name="5 · Features">
-        <Act id="feat" blur={blur} samples={samples}>
-          <Act5Features />
-        </Act>
+        <Act5Features />
       </Sequence>
       <Sequence from={ACT.end.from} durationInFrames={ACT.end.dur} name="6 · Everything fits">
-        <Act id="end" blur={blur} samples={samples}>
-          <Act6End />
-        </Act>
+        <Act6End />
       </Sequence>
-      <Grain opacity={0.028} />
+      {grain && <Grain opacity={GRAIN} />}
       <Audio src={staticFile('audio/soundtrack.wav')} />
     </AbsoluteFill>
   </FontGate>
