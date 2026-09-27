@@ -1,0 +1,394 @@
+{
+ "fps": 60,
+ "total": 1920,
+ "bpm": 120,
+ "acts": {
+  "fit": {
+   "from": 0,
+   "dur": 360
+  },
+  "mark": {
+   "from": 360,
+   "dur": 240
+  },
+  "prompt": {
+   "from": 600,
+   "dur": 240
+  },
+  "plan": {
+   "from": 840,
+   "dur": 240
+  },
+  "feat": {
+   "from": 1080,
+   "dur": 360
+  },
+  "end": {
+   "from": 1440,
+   "dur": 480
+  }
+ },
+ "cue": {
+  "dotIn": 30,
+  "lineDraw": 60,
+  "gridDraw": 90,
+  "yourWeek": 120,
+  "rainStart": 150,
+  "doesntFit": 240,
+  "implodeStart": 330,
+  "silence": 345,
+  "drop1": 360,
+  "lockup": 420,
+  "descriptor": 480,
+  "flyIn": 555,
+  "appSettle": 600,
+  "zoomBar": 630,
+  "typeStart": 660,
+  "typeEnd": 780,
+  "click": 810,
+  "redFill": 825,
+  "drop2": 840,
+  "landingsFrom": 870,
+  "landingsTo": 990,
+  "straighten": 990,
+  "toast": 1050,
+  "feat1": 1080,
+  "feat2": 1200,
+  "feat3": 1320,
+  "pullBack": 1440,
+  "converge": 1560,
+  "everything": 1620,
+  "fits": 1680,
+  "lockupEnd": 1740,
+  "url": 1800,
+  "final": 1890
+ },
+ "rain": [
+  150,
+  152,
+  154,
+  156,
+  159,
+  161,
+  163,
+  165,
+  168,
+  170,
+  172,
+  175,
+  177,
+  179,
+  182,
+  184,
+  187,
+  190,
+  192,
+  195,
+  198,
+  200,
+  203,
+  206,
+  209,
+  212,
+  215,
+  218,
+  221,
+  225,
+  228,
+  232,
+  235,
+  239,
+  243,
+  247,
+  251,
+  255,
+  260,
+  265,
+  271,
+  277,
+  283,
+  291,
+  301,
+  322
+ ],
+ "keys": [
+  662,
+  663,
+  665,
+  667,
+  669,
+  671,
+  673,
+  675,
+  677,
+  678,
+  680,
+  682,
+  684,
+  686,
+  688,
+  689,
+  691,
+  693,
+  696,
+  697,
+  703,
+  705,
+  707,
+  710,
+  711,
+  713,
+  715,
+  717,
+  718,
+  719,
+  721,
+  723,
+  724,
+  726,
+  729,
+  735,
+  737,
+  739,
+  742,
+  743,
+  745,
+  747,
+  749,
+  751,
+  752,
+  755,
+  757,
+  759,
+  761,
+  762,
+  764,
+  766,
+  767,
+  768,
+  770,
+  772,
+  774,
+  776,
+  778,
+  780
+ ],
+ "cascade": [
+  608,
+  608,
+  610,
+  611,
+  611,
+  612,
+  612,
+  613,
+  614,
+  614,
+  614,
+  616,
+  616,
+  616,
+  617,
+  617,
+  617,
+  618,
+  618,
+  619,
+  619,
+  619,
+  620,
+  620,
+  621,
+  621,
+  621,
+  621,
+  622,
+  622,
+  623,
+  623,
+  623,
+  623,
+  624,
+  625,
+  626,
+  626,
+  627,
+  628,
+  628,
+  631
+ ],
+ "landings": [
+  {
+   "f": 908,
+   "heavy": false
+  },
+  {
+   "f": 915,
+   "heavy": false
+  },
+  {
+   "f": 915,
+   "heavy": false
+  },
+  {
+   "f": 915,
+   "heavy": false
+  },
+  {
+   "f": 915,
+   "heavy": false
+  },
+  {
+   "f": 923,
+   "heavy": false
+  },
+  {
+   "f": 923,
+   "heavy": false
+  },
+  {
+   "f": 923,
+   "heavy": false
+  },
+  {
+   "f": 923,
+   "heavy": false
+  },
+  {
+   "f": 923,
+   "heavy": false
+  },
+  {
+   "f": 923,
+   "heavy": false
+  },
+  {
+   "f": 930,
+   "heavy": false
+  },
+  {
+   "f": 930,
+   "heavy": false
+  },
+  {
+   "f": 938,
+   "heavy": false
+  },
+  {
+   "f": 938,
+   "heavy": false
+  },
+  {
+   "f": 938,
+   "heavy": false
+  },
+  {
+   "f": 938,
+   "heavy": false
+  },
+  {
+   "f": 938,
+   "heavy": true
+  },
+  {
+   "f": 938,
+   "heavy": false
+  },
+  {
+   "f": 938,
+   "heavy": false
+  },
+  {
+   "f": 945,
+   "heavy": false
+  },
+  {
+   "f": 945,
+   "heavy": false
+  },
+  {
+   "f": 945,
+   "heavy": false
+  },
+  {
+   "f": 945,
+   "heavy": false
+  },
+  {
+   "f": 953,
+   "heavy": false
+  },
+  {
+   "f": 953,
+   "heavy": false
+  },
+  {
+   "f": 953,
+   "heavy": false
+  },
+  {
+   "f": 953,
+   "heavy": false
+  },
+  {
+   "f": 953,
+   "heavy": true
+  },
+  {
+   "f": 960,
+   "heavy": true
+  },
+  {
+   "f": 968,
+   "heavy": true
+  },
+  {
+   "f": 968,
+   "heavy": true
+  },
+  {
+   "f": 975,
+   "heavy": true
+  },
+  {
+   "f": 983,
+   "heavy": true
+  }
+ ],
+ "sfx": {
+  "markSnapA": 378,
+  "markSnapB": 384,
+  "wordmark": 434,
+  "flyWhoosh": 555,
+  "zoomWhoosh": 630,
+  "macroWhoosh": 774,
+  "click": 810,
+  "flood": 823,
+  "straighten": 990,
+  "toast": 1050,
+  "cardMorph": 1080,
+  "f1Lift": 1110,
+  "f1Land": 1156,
+  "f1Checks": [
+   1132,
+   1138,
+   1144,
+   1150
+  ],
+  "drum2": 1190,
+  "drum3": 1310,
+  "f2Invite": 1216,
+  "f2Bounce": 1244,
+  "f2Reply": 1258,
+  "f3Late": 1346,
+  "f3Shift": 1354,
+  "backToWeek": 1406,
+  "pullBack": 1444,
+  "wordsIn": 1658,
+  "fitsSnap": 1680,
+  "markSnap2A": 1762,
+  "markSnap2B": 1768,
+  "lockup2": 1784,
+  "finalBlink": 1890
+ }
+}

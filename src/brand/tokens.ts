@@ -10,8 +10,8 @@ export const C = {
   line2: '#D5D7DC',
   mute: '#8A8D96', // secondary text
   mute2: '#5E616A',
-  red: '#F0282D', // "now" — the only accent
-  redSoft: 'rgba(240,40,45,0.12)',
+  red: '#EC2A3A', // "now" — the only accent
+  redSoft: 'rgba(236,42,58,0.12)',
 };
 
 export const FONT = {

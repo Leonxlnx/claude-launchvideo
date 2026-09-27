@@ -136,3 +136,22 @@ export const fmt = (h: number) => {
   const mm = Math.round((h - hh) * 60);
   return `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}`;
 };
+
+// The week as it stands at the end of the feature section (Roadmap moved to Fri,
+// All-hands ran 30 min over and Wednesday afternoon re-flowed).
+export const FINAL: Ev[] = AFTER.map((e) => {
+  switch (e.id) {
+    case 'th-road':
+      return { ...e, day: 4, start: 15, end: 16 };
+    case 'we-all':
+      return { ...e, end: 14.5 };
+    case 'we-budget':
+      return { ...e, start: 14.5, end: 15.25 };
+    case 'we-onb':
+      return { ...e, start: 15.25, end: 16.25 };
+    case 'we-qbr':
+      return { ...e, start: 16.25, end: 17.2 };
+    default:
+      return e;
+  }
+});

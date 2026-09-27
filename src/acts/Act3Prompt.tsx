@@ -50,18 +50,35 @@ export const KEY_FRAMES = CHAR_AT.map((c) => Math.round(c + ACT.prompt.from));
 
 const typed = (f: number) => CHAR_AT.filter((c) => c <= f).length;
 
-const slice = (n: number): Token[] => {
-  const out: Token[] = [];
-  let left = n;
-  for (const t of PROMPT) {
-    if (left <= 0) {
-      out.push({ ...t, text: '' });
-      continue;
+// newest characters arrive in the accent ("now") and relax to ink — colour means "just happened"
+const ink = (age: number) => {
+  const k = Math.max(0, Math.min(1, age / 12));
+  const e = 1 - Math.pow(1 - k, 2);
+  const r = Math.round(236 + (11 - 236) * e);
+  const g = Math.round(42 + (11 - 42) * e);
+  const b = Math.round(58 + (12 - 58) * e);
+  return `rgb(${r},${g},${b})`;
+};
+
+// tokens for the visible prompt; plain text is split per character so each can carry its own ink
+const slice = (n: number, f: number): { tokens: Token[]; chipIndex: number[] } => {
+  const tokens: Token[] = [];
+  const chipIndex: number[] = [];
+  let idx = 0;
+  PROMPT.forEach((t, ti) => {
+    const vis = Math.max(0, Math.min(t.text.length, n - idx));
+    if (t.chip) {
+      tokens.push({ text: t.text.slice(0, vis), chip: true, color: vis ? ink(f - CHAR_AT[idx + vis - 1]) : undefined });
+      chipIndex.push(ti);
+    } else {
+      for (let c = 0; c < vis; c++) {
+        tokens.push({ text: t.text[c], color: ink(f - CHAR_AT[idx + c]) });
+        chipIndex.push(-1);
+      }
     }
-    out.push({ ...t, text: t.text.slice(0, left) });
-    left -= t.text.length;
-  }
-  return out;
+    idx += t.text.length;
+  });
+  return { tokens, chipIndex };
 };
 
 // frame each token finishes (for chip pop)
@@ -81,18 +98,27 @@ const sendApp = { x: SEND.x, y: SEND.y };
 export const Act3Prompt: React.FC = () => {
   const f = useCurrentFrame();
 
-  // camera: 0.94 (whole app) → 2.05 (command bar) → 3.3 (send button)
-  const z1 = prog(f, L(CUE.zoomBar), L(CUE.zoomBar) + 50, E.inOut);
-  const z2 = prog(f, L(CUE.typeEnd) - 6, L(CUE.click) - 2, E.inOut);
-  const typingPush = tw(f, L(CUE.typeStart), L(CUE.typeEnd), 0, 0.12, E.smooth);
-  const S = mix(mix(V.s * mix(1, 1.02, prog(f, 0, 40, E.smooth)), 2.1 + typingPush, z1), 3.4, z2);
-  // focus point in app space and where it should sit on screen
-  const fApp = { x: mix(focusApp.x, sendApp.x, z2), y: mix(focusApp.y, sendApp.y, z2) };
-  const startScreen = { x: V.x + focusApp.x * V.s, y: V.y + focusApp.y * V.s };
-  const fScreen = { x: mix(startScreen.x, 960, z1), y: mix(mix(startScreen.y, 790, z1), 600, z2) };
-  const tx = fScreen.x - fApp.x * S;
-  const ty = fScreen.y - fApp.y * S;
-  const appBlur = mix(0, 7, z1);
+  // Camera. The app stays behind at a parallax scale (blurred, filling the frame) while the
+  // command bar lifts off it toward the lens and floats to frame centre; then a macro onto send.
+  const z1 = prog(f, L(CUE.zoomBar), L(CUE.zoomBar) + 54, E.cam);
+  const z2 = prog(f, L(CUE.typeEnd) - 4, L(CUE.click) - 2, E.inOut);
+  const typingPush = tw(f, L(CUE.typeStart), L(CUE.typeEnd), 0, 0.1, E.smooth);
+  const breathe = mix(1, 1.02, prog(f, 0, 40, E.smooth));
+  // app layer
+  const SA = mix(mix(V.s * breathe, 1.6, z1), 1.78, z2);
+  const startScreen = { x: V.x + focusApp.x * V.s * breathe, y: V.y + focusApp.y * V.s * breathe };
+  const aScreen = { x: mix(startScreen.x, 960, z1), y: mix(mix(startScreen.y, 1045, z1), 1080, z2) };
+  const tx = aScreen.x - focusApp.x * SA;
+  const ty = aScreen.y - focusApp.y * SA;
+  // bar layer (its own transform: lifted in Z)
+  const SB = mix(mix(V.s * breathe, 2.12 + typingPush, z1), 3.5, z2);
+  const barFocusApp = { x: mix(focusApp.x, sendApp.x, z2), y: mix(focusApp.y, sendApp.y, z2) };
+  const bScreen = { x: mix(startScreen.x, 960, z1) + mix(0, 150, z2), y: mix(startScreen.y, 590, z1) };
+  const bx = bScreen.x - barFocusApp.x * SB;
+  const by = bScreen.y - barFocusApp.y * SB;
+  const lift = z1;
+  const appBlur = mix(0, 10, z1);
+  const appDim = mix(0, 0.18, z1);
 
   // week loads: events cascade in, column by column
   const events = BEFORE.map((ev) => {
@@ -109,22 +135,27 @@ export const Act3Prompt: React.FC = () => {
 
   // typing
   const n = typed(f);
-  const tokens = slice(n);
-  const chipIn = PROMPT.map((t, i) => (t.chip ? prog(f, tokenDone[i] + 1, tokenDone[i] + 12, E.out) : 0));
+  const { tokens, chipIndex } = slice(n, f);
+  const chipIn = chipIndex.map((ti) => (ti >= 0 ? prog(f, tokenDone[ti] + 1, tokenDone[ti] + 12, E.out) : 0));
   const caretOn = f < L(CUE.typeStart) ? Math.floor(f / 16) % 2 === 0 : f > L(CUE.typeEnd) + 6 ? Math.floor(f / 16) % 2 === 0 : true;
   const barFocus = prog(f, L(CUE.zoomBar) + 20, L(CUE.typeStart), E.out);
 
   // cursor → send → click
   const clickF = L(CUE.click);
-  const cur = prog(f, clickF - 34, clickF - 4, E.inOut);
-  const sendScreen = { x: tx + sendApp.x * S, y: ty + sendApp.y * S };
-  const curX = mix(sendScreen.x + 520, sendScreen.x + 4, cur);
-  const curY = mix(sendScreen.y + 300, sendScreen.y + 6, cur);
+  const cur = prog(f, clickF - 36, clickF + 6, E.out);
+  const sendScreen = { x: bx + sendApp.x * SB, y: by + sendApp.y * SB };
+  // quadratic bezier from lower right, bowing upward, landing on the button
+  const p0 = { x: sendScreen.x + 560, y: sendScreen.y + 360 };
+  const p1 = { x: sendScreen.x + 140, y: sendScreen.y + 300 };
+  const p2 = { x: sendScreen.x + 6, y: sendScreen.y + 8 };
+  const q = (a: number, b: number, c: number, t: number) => (1 - t) * (1 - t) * a + 2 * (1 - t) * t * b + t * t * c;
+  const curX = q(p0.x, p1.x, p2.x, cur);
+  const curY = q(p0.y, p1.y, p2.y, cur);
   const press = prog(f, clickF, clickF + 4, E.out) * (1 - prog(f, clickF + 6, clickF + 14, E.out));
 
   // red flood from the send button
   const fl = prog(f, L(CUE.redFill) - 2, ACT.prompt.dur, E.in);
-  const floodR = mix(21 * S * (1 - 0.1 * press), 2300, fl);
+  const floodR = mix(21 * SB * (1 - 0.1 * press), 2300, fl);
 
   return (
     <AbsoluteFill style={{ background: C.ink, overflow: 'hidden' }}>
@@ -133,28 +164,31 @@ export const Act3Prompt: React.FC = () => {
           background: 'radial-gradient(ellipse 70% 60% at 50% 45%, rgba(255,255,255,0.075), rgba(255,255,255,0) 70%)',
         }}
       />
-      {/* app (blurred as we push in) */}
-      <div
-        style={{
-          position: 'absolute',
-          left: 0,
-          top: 0,
-          width: APP.W,
-          height: APP.H,
-          transform: `translate(${tx}px, ${ty}px) scale(${S})`,
-          transformOrigin: '0 0',
-          filter: appBlur > 0.05 ? `blur(${appBlur / S}px)` : undefined,
-        }}
-      >
-        <CalendarApp events={events} nowO={nowT} hideBar clashes={7} clashO={prog(f, 36, 50, E.out)} shadow={false} />
+      {/* app (blurred as we push in) — blur runs on a viewport-sized wrapper, not the scaled layer */}
+      <div style={{ position: 'absolute', left: -80, top: -80, width: 2080, height: 1240, overflow: 'hidden', filter: appBlur > 0.05 ? `blur(${appBlur}px)` : undefined }}>
+        <div
+          style={{
+            position: 'absolute',
+            left: 80,
+            top: 80,
+            width: APP.W,
+            height: APP.H,
+            transform: `translate(${tx}px, ${ty}px) scale(${SA})`,
+            transformOrigin: '0 0',
+          }}
+        >
+          <CalendarApp events={events} nowO={nowT} hideBar clashes={7} clashO={prog(f, 36, 50, E.out)} shadow={false} />
+        </div>
       </div>
+      <AbsoluteFill style={{ background: C.ink, opacity: appDim }} />
       {/* command bar, always sharp */}
       <div
         style={{
           position: 'absolute',
-          left: tx + BAR.x * S,
-          top: ty + BAR.y * S,
-          transform: `scale(${S})`,
+          left: bx + BAR.x * SB,
+          top: by + BAR.y * SB,
+          transform: `scale(${SB})`,
+          filter: `drop-shadow(0 ${30 * lift}px ${50 * lift}px rgba(11,11,12,${0.22 * lift}))`,
           transformOrigin: '0 0',
         }}
       >

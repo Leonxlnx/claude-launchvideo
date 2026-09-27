@@ -1,6 +1,6 @@
 import React from 'react';
 import { AbsoluteFill, useCurrentFrame } from 'remotion';
-import { measureText } from '@remotion/layout-utils';
+import { measureTracked } from '../lib/measure';
 import { C, FONT } from '../brand/tokens';
 import { MARK } from '../brand/Mark';
 import { E, mix, prog, spr } from '../lib/anim';
@@ -35,8 +35,8 @@ export const Act2Mark: React.FC = () => {
 
   // --- mark geometry ------------------------------------------------------------------
   const M0 = 240; // assembled size at center
-  const M1 = 150; // lockup size
-  const wm = measureText({ text: 'tessel', fontFamily: FONT.sans, fontSize: WORD.size, fontWeight: String(WORD.weight), letterSpacing: `${WORD.track}em` });
+  const M1 = 140; // lockup size: top on the ascender, bottom on the baseline
+  const wm = { width: measureTracked('tessel', WORD.size, WORD.weight, WORD.track) };
   const gap = 34;
   const lockW = M1 + gap + wm.width;
   const lockX = 960 - lockW / 2;
@@ -162,7 +162,7 @@ export const Act2Mark: React.FC = () => {
           opacity: 1 - wordOut,
         }}
       >
-        <Words text="The calendar that plans itself." frame={f} start={L(CUE.descriptor) - 20} stagger={5} dur={24} blur={10} />
+        <Words text="The calendar that plans itself." frame={f} start={L(CUE.lockup) + 22} stagger={5} dur={24} blur={10} />
       </div>
 
       {/* the mark (punch applies to the whole assembly) */}

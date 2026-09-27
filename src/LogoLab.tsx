@@ -2,7 +2,7 @@ import '@fontsource-variable/geist';
 import { AbsoluteFill } from 'remotion';
 
 const INK = '#0B0B0C';
-const RED = '#F0282D';
+const RED = '#EC2A3A';
 
 // V1: tall block + square + dot
 const MarkA: React.FC<{ s: number; red?: string }> = ({ s, red = RED }) => {

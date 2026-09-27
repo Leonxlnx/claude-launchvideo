@@ -83,7 +83,7 @@ const HourLines: React.FC<{ f: number }> = ({ f }) => {
                 fontFamily: FONT.mono,
                 fontSize: 17,
                 color: C.mute,
-                opacity: prog(f, start + 10, start + 34),
+                opacity: prog(f, start + 10, start + 34) * mix(1, 0.35, prog(f, CUE.rainStart, CUE.doesntFit, E.smooth)),
               }}
             >
               {String(h).padStart(2, '0')}:00
@@ -128,7 +128,7 @@ export const Act1Fit: React.FC = () => {
   const line1Y = tw(f, CUE.doesntFit - 6, CUE.doesntFit + 16, 0, -40, E.out);
 
   // rain blur grows as the pile gets dense (depth of field behind the type)
-  const rainBlur = tw(f, CUE.yourWeek, CUE.doesntFit + 20, 0, 5, E.smooth);
+  const rainBlur = tw(f, CUE.yourWeek, CUE.doesntFit + 20, 0, 3.5, E.smooth);
   const rainDim = tw(f, CUE.doesntFit, CUE.doesntFit + 20, 1, 0.55, E.smooth);
 
   return (

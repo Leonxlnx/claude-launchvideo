@@ -15,6 +15,8 @@ export const E = {
   inOut: Easing.bezier(0.87, 0, 0.13, 1), // expo-in-out: camera whips
   smooth: Easing.bezier(0.65, 0, 0.35, 1), // cubic-in-out: drifts
   swift: Easing.bezier(0.4, 0, 0.2, 1), // material standard: UI
+  cam: Easing.bezier(0.48, 0.1, 0.0, 0.9), // house camera curve: slow start, early peak, long settle
+  glide: Easing.bezier(0.47, 0.2, 0.15, 1), // short snappy moves with a soft landing
   linear: (t: number) => t,
 };
 

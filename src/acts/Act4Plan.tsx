@@ -94,11 +94,12 @@ export const Act4Plan: React.FC = () => {
       const bounce = f > p.t2 ? Math.exp(-(f - p.t2) / 4) * Math.sin((f - p.t2) / 1.6) * 0.035 : 0;
       const rect = lerpRect(rb, ra, tp);
       const rot = p.wob * lift * (1 - drop);
+      const flash = f >= p.t2 ? Math.exp(-(f - p.t2) / 9) : 0;
       if (p.b!.kind !== p.a!.kind) {
         blocks.push({ key: p.id + ':b', ev: p.b!, s: { rect, z, rot, opacity: 1 - prog(f, p.t1 + 10, p.t2 - 10), scale: 1 - bounce }, shadow: { r: rect, z } });
-        blocks.push({ key: p.id + ':a', ev: p.a!, s: { rect, z: z + 0.5, rot, opacity: prog(f, p.t1 + 10, p.t2 - 10), scale: 1 - bounce }, shadow: { r: rect, z: -1 } });
+        blocks.push({ key: p.id + ':a', ev: p.a!, s: { rect, z: z + 0.5, rot, opacity: prog(f, p.t1 + 10, p.t2 - 10), scale: 1 - bounce, glow: flash }, shadow: { r: rect, z: -1 } });
       } else {
-        blocks.push({ key: p.id, ev: tp > 0.5 ? p.a! : p.b!, s: { rect, z, rot, scale: 1 - bounce }, shadow: { r: rect, z } });
+        blocks.push({ key: p.id, ev: tp > 0.5 ? p.a! : p.b!, s: { rect, z, rot, scale: 1 - bounce, glow: flash }, shadow: { r: rect, z } });
       }
     } else if (rb) {
       // declined / moved to next week: rise and drift off to the right
@@ -108,11 +109,12 @@ export const Act4Plan: React.FC = () => {
       blocks.push({ key: p.id, ev: p.b!, s: { rect, z, rot: p.wob * lift + go * 8, opacity: 1 - prog(f, p.t1 + 22, p.t1 + 46) }, shadow: { r: rect, z } });
     } else if (ra) {
       // newcomers fall in from high above
-      const appear = prog(f, p.t2 - 26, p.t2 - 18);
-      const drop = prog(f, p.t2 - 26, p.t2, E.in);
-      const z = mix(900, 0, drop);
+      const appear = prog(f, p.t2 - 30, p.t2 - 22);
+      const drop = prog(f, p.t2 - 30, p.t2, E.in);
+      const z = mix(650, 0, drop);
       const bounce = f > p.t2 ? Math.exp(-(f - p.t2) / 4) * Math.sin((f - p.t2) / 1.6) * 0.05 : 0;
-      if (appear > 0) blocks.push({ key: p.id, ev: p.a!, s: { rect: ra, z, opacity: appear, scale: 1 - bounce }, shadow: { r: ra, z } });
+      const flash = f >= p.t2 ? Math.exp(-(f - p.t2) / 10) : 0;
+      if (appear > 0) blocks.push({ key: p.id, ev: p.a!, s: { rect: ra, z, opacity: appear, scale: 1 - bounce, glow: flash }, shadow: { r: ra, z } });
     }
   }
 
@@ -141,6 +143,7 @@ export const Act4Plan: React.FC = () => {
 
   // UI feedback once the week settles
   const done = prog(f, L(CUE.toast), L(CUE.toast) + 18, E.out);
+  const toastOut = prog(f, ACT.plan.dur - 14, ACT.plan.dur, E.in);
   const prioIn = [0, 1, 2].map((i) => prog(f, L(CUE.toast) + 4 + i * 5, L(CUE.toast) + 22 + i * 5, E.out));
 
   return (
@@ -187,8 +190,8 @@ export const Act4Plan: React.FC = () => {
             fontSize: 14.5,
             fontWeight: 540,
             letterSpacing: '-0.01em',
-            opacity: done,
-            transform: `translateY(${(1 - done) * 16}px) scale(${mix(0.94, 1, done)})`,
+            opacity: done * (1 - toastOut),
+            transform: `translateY(${(1 - done) * 16 + toastOut * 8}px) scale(${mix(0.94, 1, done)})`,
             boxShadow: '0 12px 30px rgba(11,11,12,0.25)',
           }}
         >

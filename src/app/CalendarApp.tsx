@@ -107,7 +107,7 @@ export const EventBlock: React.FC<{ ev: Ev; s: EvStyle; flat?: boolean; noLiftSh
               ? `0 0 0 ${1.5 * s.glow}px ${C.red}`
               : 'none',
         ...ks,
-        ...(s.glow && z <= 0.5 ? { boxShadow: `0 0 0 ${1.5 * s.glow}px rgba(240,40,45,${0.9 * s.glow})` } : {}),
+        ...(s.glow && z <= 0.5 ? { boxShadow: `0 0 0 ${1.5 * s.glow}px rgba(236,42,58,${0.9 * s.glow})` } : {}),
       }}
     >
       <div
@@ -159,7 +159,7 @@ export const ICON = {
 // ---------------------------------------------------------------------------
 // Command bar — "Tell Tessel what matters"
 // ---------------------------------------------------------------------------
-export type Token = { text: string; chip?: boolean };
+export type Token = { text: string; chip?: boolean; color?: string };
 
 export const CommandBar: React.FC<{
   text: Token[];
@@ -209,12 +209,13 @@ export const CommandBar: React.FC<{
                     position: 'relative',
                     fontWeight: 400 + 160 * (chipIn[i] ?? 0),
                     whiteSpace: 'pre',
+                    color: t.color,
                   }}
                 >
                   {t.text}
                 </span>
               ) : (
-                <span key={i} style={{ whiteSpace: 'pre' }}>
+                <span key={i} style={{ whiteSpace: 'pre', color: t.color }}>
                   {t.text}
                 </span>
               ),
@@ -233,7 +234,7 @@ export const CommandBar: React.FC<{
           alignItems: 'center',
           justifyContent: 'center',
           transform: `scale(${1 - 0.1 * press})`,
-          boxShadow: `0 4px 12px rgba(240,40,45,${0.28 - 0.18 * press})`,
+          boxShadow: `0 4px 12px rgba(236,42,58,${0.28 - 0.18 * press})`,
           flexShrink: 0,
         }}
       >
@@ -427,7 +428,7 @@ const TopBar: React.FC<{ clashes?: number; clashO?: number; resolved?: number }>
           fontWeight: 560,
           opacity: clashO,
           transform: `translateY(${(1 - clashO) * 6}px)`,
-          background: resolved > 0.5 ? '#F1F2F4' : 'rgba(240,40,45,0.08)',
+          background: resolved > 0.5 ? '#F1F2F4' : 'rgba(236,42,58,0.08)',
           color: resolved > 0.5 ? C.ink : C.red,
         }}
       >
@@ -548,24 +549,24 @@ const Gutter: React.FC = () => {
   );
 };
 
-export const NowLine: React.FC<{ t?: number; o?: number }> = ({ t = 1, o = 1 }) => {
-  const y = (NOW - H0) * HOUR;
+export const NowLine: React.FC<{ t?: number; o?: number; now?: number }> = ({ t = 1, o = 1, now = NOW }) => {
+  const y = (now - H0) * HOUR;
   return (
     <>
       {/* faint across the week, strong across today */}
-      <div style={{ position: 'absolute', left: 0, top: y, width: GRID.w * t, height: 1, background: `rgba(240,40,45,${0.28 * o})` }} />
+      <div style={{ position: 'absolute', left: 0, top: y, width: GRID.w * t, height: 1, background: `rgba(236,42,58,${0.28 * o})` }} />
       <div style={{ position: 'absolute', left: TODAY * COL, top: y - 0.75, width: COL * t, height: 2, background: C.red, opacity: o }} />
       <div style={{ position: 'absolute', left: TODAY * COL - 5, top: y - 5, width: 10, height: 10, borderRadius: 5, background: C.red, opacity: o }} />
     </>
   );
 };
 
-const NowLabel: React.FC<{ o?: number }> = ({ o = 1 }) => (
+const NowLabel: React.FC<{ o?: number; now?: number }> = ({ o = 1, now = NOW }) => (
   <div
     style={{
       position: 'absolute',
       left: APP.side + 10,
-      top: GRID.y + (NOW - H0) * HOUR - 10,
+      top: GRID.y + (now - H0) * HOUR - 10,
       background: C.red,
       color: '#fff',
       fontFamily: FONT.mono,
@@ -576,7 +577,7 @@ const NowLabel: React.FC<{ o?: number }> = ({ o = 1 }) => (
       opacity: o,
     }}
   >
-    10:24
+    {fmt(now)}
   </div>
 );
 
@@ -600,6 +601,7 @@ export type AppProps = {
   clashes?: number;
   clashO?: number;
   resolved?: number;
+  now?: number; // override the current time (hours)
   overlay?: React.ReactNode; // extra layers in app space
   shadow?: boolean;
 };
@@ -623,6 +625,7 @@ export const CalendarApp: React.FC<AppProps> = ({
   clashO,
   resolved,
   noLiftShadow,
+  now = NOW,
 }) => (
   <div
     style={{
@@ -643,7 +646,7 @@ export const CalendarApp: React.FC<AppProps> = ({
       <TopBar clashes={clashes} clashO={clashO} resolved={resolved} />
       <DayHeader />
       <Gutter />
-      <NowLabel o={nowO} />
+      <NowLabel o={nowO} now={now} />
     </div>
     <div
       style={{
@@ -660,7 +663,7 @@ export const CalendarApp: React.FC<AppProps> = ({
       {events.map(({ ev, s, key }) => (
         <EventBlock key={key ?? ev.id} ev={ev} s={s} flat={flat} noLiftShadow={noLiftShadow} />
       ))}
-      <NowLine o={nowO} />
+      <NowLine o={nowO} now={now} />
     </div>
     {!hideBar && (
       <div

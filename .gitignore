@@ -1,6 +1,5 @@
 node_modules/
-out/*.png
-out/frames/
+out/*
+!out/cues.json
 .DS_Store
 *.log
-/tmp/
