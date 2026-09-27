@@ -1,11 +1,12 @@
 import React from 'react';
 import { AbsoluteFill, useCurrentFrame } from 'remotion';
 import { C } from '../brand/tokens';
-import { E, mix, prog, rand, spr, tw } from '../lib/anim';
+import { E, mix, prog, rand, tw } from '../lib/anim';
 import { ACT, CUE } from '../timeline';
-import { APP, BAR, CalendarApp, CommandBar, evRect, SEND, Token } from '../app/CalendarApp';
+import { APP, BAR, CalendarApp, CommandBar, SEND, Token } from '../app/CalendarApp';
 import { BEFORE } from '../app/data';
 import { APP_VIEW } from './Act2Mark';
+import { weekLoad } from '../app/weekLoad';
 import { Cursor } from '../fx/Cursor';
 import { RackFocus } from '../fx/RackFocus';
 
@@ -99,7 +100,7 @@ const V = APP_VIEW;
 const focusApp = { x: BAR.x + BAR.w / 2, y: BAR.y + BAR.h / 2 };
 const sendApp = { x: SEND.x, y: SEND.y };
 
-export const CLASH_AT = 34; // act-local frame the first day's clashes flash
+export const CLASH_AT = 4; // act-local frame the first day's clashes flash (on the bar-6 downbeat)
 export const CLASH_STEP = 2.5; // frames between days
 export const CLASH_DAYS = [...new Set(BEFORE.filter((e) => (e.lanes ?? 1) > 1).map((e) => e.day))].sort((a, b) => a - b);
 
@@ -133,14 +134,8 @@ export const Act3Prompt: React.FC = () => {
   const lift = z1;
   const appDim = mix(0, 0.18, z1);
 
-  // week loads: events cascade in, column by column
-  const events = BEFORE.map((ev) => {
-    const at = 2 + ev.day * 3 + (ev.start - 9) * 1.6;
-    const p = prog(f, at, at + 16, E.out);
-    const sp = spr(f, at, { damping: 15, stiffness: 240, mass: 0.6 });
-    const r = evRect(ev);
-    return { ev, s: { rect: { ...r, y: r.y - (1 - sp) * 14 }, opacity: p, glow: 0 } };
-  });
+  // the week has loaded while the app flew in (Act 2 shows the same cascade)
+  const events = weekLoad(ACT.prompt.from + f);
   // clashes flash once the week is in
   // clashes flash day by day (one conflict blip per day in the soundtrack)
   for (const e of events)
@@ -201,7 +196,7 @@ export const Act3Prompt: React.FC = () => {
               transformOrigin: '0 0',
             }}
           >
-            <CalendarApp events={events} nowO={1} labelO={prog(f, 10, 24, E.out)} lineT={nowT} hideBar clashes={12} clashO={prog(f, 36, 50, E.out)} shadow={false} />
+            <CalendarApp events={events} nowO={1} labelO={prog(f, 10, 24, E.out)} lineT={nowT} hideBar clashes={12} clashO={prog(f, 6, 20, E.out)} shadow={false} />
           </div>
         )}
       />

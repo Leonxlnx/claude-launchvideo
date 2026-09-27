@@ -7,6 +7,7 @@ import { spring, SpringConfig } from 'remotion';
 import { ACT, CUE, FPS, TOTAL } from '../src/timeline';
 import { RAIN } from '../src/acts/act1-data';
 import { CLASH_AT, CLASH_DAYS, CLASH_STEP, KEY_FRAMES, PROMPT } from '../src/acts/Act3Prompt';
+import { loadAt } from '../src/app/weekLoad';
 import { HOLD_BEATS } from '../src/acts/Act2Mark';
 import { LANDINGS, STRAIGHTEN_LEN } from '../src/acts/Act4Plan';
 import { BEFORE } from '../src/app/data';
@@ -34,7 +35,7 @@ const hit = (start: number, cfg: Partial<SpringConfig>) => {
   return start + 30;
 };
 
-const cascade = BEFORE.map((ev) => Math.round(ACT.prompt.from + 2 + ev.day * 3 + (ev.start - 9) * 1.6 + 6)).sort((a, b) => a - b);
+const cascade = BEFORE.map((ev) => Math.round(loadAt(ev) + 6)).sort((a, b) => a - b);
 const P = ACT.prompt.from;
 const feat = ACT.feat.from;
 const F1 = CUE.feat1 - feat;

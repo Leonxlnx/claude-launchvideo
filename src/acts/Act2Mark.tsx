@@ -8,6 +8,7 @@ import { Words } from '../fx/Words';
 import { ACT, b, CUE } from '../timeline';
 import { APP, CalendarApp, GRID, HOUR, COL } from '../app/CalendarApp';
 import { H0, NOW, TODAY } from '../app/data';
+import { weekLoad } from '../app/weekLoad';
 
 // ACT 2 — the dot becomes the mark, the mark becomes the product.
 // The tall block turns into the sidebar, the square into the calendar, the dot into "now".
@@ -253,7 +254,7 @@ export const Act2Mark: React.FC = () => {
                   transformOrigin: '0 0',
                 }}
               >
-                <CalendarApp events={[]} nowO={0} shadow={false} />
+                <CalendarApp events={weekLoad(ACT.mark.from + f)} nowO={0} shadow={false} />
               </div>
             </div>
           ))}
