@@ -145,7 +145,8 @@ export const Act5Features: React.FC = () => {
 
   // ---- overlays in app space ------------------------------------------------------------
   const road = styled.find((x) => x.ev.id === 'th-road')!.s.rect;
-  const checks = ['MR', 'JL', 'PS', 'AK'].map((_, i) => spr(f, F1 + 48 + i * 6, { damping: 12, stiffness: 220, mass: 0.5 }));
+  // availability checks pop one by one once the block has landed
+  const checks = ['MR', 'JL', 'PS', 'AK'].map((_, i) => spr(f, F1 + 78 + i * 5, { damping: 12, stiffness: 220, mass: 0.5 }));
   const avatarsO = prog(f, F1 + 24, F1 + 36) * (1 - prog(f, F2 - 16, F2 - 4));
 
   // feature 2: invite card flies at the focus block, bounces, re-routes

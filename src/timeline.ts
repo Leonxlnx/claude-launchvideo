@@ -14,10 +14,10 @@ export const ACT = {
   prompt: { from: b(6), dur: b(8) - b(6) }, // 10.0s prompt + send
   plan: { from: b(8), dur: b(10) - b(8) }, // 14.0s the fitting
   feat: { from: b(10), dur: b(13) - b(10) }, // 18.0s three features
-  end: { from: b(13), dur: b(17) - b(13) }, // 24.0s everything fits + lockup
+  end: { from: b(13), dur: b(17) + 60 - b(13) }, // 24.0s everything fits + lockup (+1s hold for the tail)
 };
 
-export const TOTAL = b(17); // 32.0s
+export const TOTAL = b(17) + 60; // 33.0s
 
 // Musical/visual cues the sound design locks to (absolute frames).
 export const CUE = {

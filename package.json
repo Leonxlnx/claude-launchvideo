@@ -5,8 +5,11 @@
   "description": "Launch film for a fictional product, built in code with Remotion.",
   "scripts": {
     "studio": "remotion studio",
-    "render": "remotion render Launch out/launch.mp4",
-    "still": "remotion still"
+    "cues": "tsx scripts/export-cues.ts",
+    "audio": "python3 scripts/soundtrack.py",
+    "render": "scripts/render.sh out/launch.mp4 --blur",
+    "render:preview": "scripts/render.sh out/preview.mp4",
+    "check-sync": "python3 scripts/check-sync.py"
   },
   "license": "UNLICENSED",
   "dependencies": {

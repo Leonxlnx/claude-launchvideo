@@ -14,12 +14,12 @@ export type LaunchProps = { blur?: boolean; samples?: number };
 
 // Fast moves that get real temporal motion blur (act-local frames). Everything else renders once.
 const WINDOWS: Record<string, ([number, number] | [number, number, number])[]> = {
-  fit: [[330, 359]],
-  mark: [[0, 32], [190, 240]],
-  prompt: [[30, 84], [172, 214], [220, 239]],
-  plan: [[0, 22], [30, 150, 16], [151, 214]],
+  fit: [[150, 329, 8], [330, 359]],
+  mark: [[0, 36], [176, 240]],
+  prompt: [[30, 86], [176, 239]],
+  plan: [[0, 26, 16], [27, 160, 16], [161, 214]],
   feat: [[0, 44], [106, 136], [226, 256], [324, 359]],
-  end: [[4, 150], [214, 242], [300, 380]],
+  end: [[0, 150], [214, 242], [300, 380]],
 };
 
 const Act: React.FC<{ id: keyof typeof ACT; blur: boolean; samples: number; children: React.ReactNode }> = ({ id, blur, samples, children }) =>

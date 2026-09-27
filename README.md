@@ -1,6 +1,6 @@
 # Tessel — launch film
 
-A 32-second launch film for **Tessel**, a fictional product: *the calendar that plans itself.*
+A 33-second launch film for **Tessel**, a fictional product: *the calendar that plans itself.*
 Everything you see and hear is generated from code in this repo. The picture is built with
 [Remotion](https://www.remotion.dev) (React → frames), and the soundtrack is synthesized in Python.
 It uses no stock footage, no samples and no templates.
@@ -18,13 +18,13 @@ shot to shot and never leaves the screen:
 
 | Time | Act | What happens |
 | --- | --- | --- |
-| 0:00 | **Doesn't fit** | The dot draws a day. Meetings rain in. "doesn't fit." slams in too big for the frame, then everything implodes back into the dot. |
+| 0:00 | **Doesn't fit** | The dot ticks like a Swiss clock and draws a day. Meetings rain in, faster and faster. "doesn't fit." slams in too big for the frame, then everything implodes back into the dot. |
 | 0:06 | **Mark** | The dot's shockwave floods the frame black. Two blocks snap around it to form the Tessel mark, and the wordmark slides out from behind it. |
-| 0:09 | **Logo becomes product** | The tall block morphs into the app's sidebar, the square into the calendar, and the dot into the red *now* line. |
-| 0:10 | **Prompt** | The overbooked week loads and seven clashes flash. The camera dives into the command bar, *"Protect my mornings. Gym Tue + Thu. Ship the deck by Friday."* is typed, and the red send button floods the screen. |
-| 0:14 | **The fitting** | The red field collapses into *now* on a tabletop view of the week. Every block lifts, flies and lands on the beat. Declined meetings drift off to next week, and ink focus blocks drop in heavy. The camera straightens on a clean week. |
-| 0:18 | **Features** | The window shrinks into a live crop of the same week while a time-picker of lines rolls: *Moves meetings. / Guards your focus. / Replans in real time.* |
-| 0:24 | **Everything fits.** | Pull back into a quilt of perfectly packed weeks. The two words slide in and lock together. The red period becomes the mark's dot, and the lockup resolves. |
+| 0:09 | **Logo becomes product** | The tall block opens into the app's sidebar and the square into the calendar. The dot flies to the red *now* line: Monday, 08:42. |
+| 0:10 | **Prompt** | The overbooked week loads and its twelve clashes flash. The command bar lifts off the app toward the lens, and *"Protect my mornings. Gym Tue + Thu. Ship the deck by Friday."* is typed. Each new letter arrives in red and settles to ink. Click. |
+| 0:14 | **The fitting** | The red field closes like a shutter into the *now* line. On a tabletop view of the week, every block lifts, flies and lands on the beat. Meetings that don't fit drift off to next week, and ink focus blocks drop in. The camera straightens on a clean week: *Week planned*. |
+| 0:18 | **Features** | The window shrinks into a live crop of the same week while a time-picker of lines rolls: *Moves meetings.* (with attendees' availability checks), *Guards your focus.* (an invite bounces off a protected block and is rebooked), *Replans in real time.* (a meeting runs 30 min over and Monday re-flows as the clock runs). |
+| 0:24 | **Everything fits.** | Pull back into a quilt of perfectly packed weeks. The two words slide in and lock. They fill with ink and become the mark's two blocks, and the red period drops into the dot's slot. Lockup. |
 
 ## Brand
 
@@ -51,11 +51,14 @@ so every tick, snap, key click and block landing sits on its exact frame.
 
 ```bash
 npm install
-npm run studio                          # interactive preview
-npx tsx scripts/export-cues.ts          # timeline → out/cues.json
-python3 scripts/soundtrack.py           # cues → public/audio/soundtrack.wav
-npx remotion render Launch out/launch.mp4 --crf=16
+npm run studio            # interactive preview
+npm run render            # final: cues → soundtrack → picture (with motion blur) → mux → sync check
+npm run render:preview    # same, without motion blur (≈6× faster)
 ```
+
+The picture is rendered muted and the soundtrack is muxed with ffmpeg. Remotion's own AAC mux
+leaves ~2.5 frames of encoder priming in the stream, and `scripts/check-sync.py` fails the build if
+the audio is ever more than 1 ms off.
 
 Python needs `numpy scipy soundfile pyloudnorm`. Rendering uses headless Chromium
 (configured in `remotion.config.ts`).
@@ -74,6 +77,8 @@ src/
 scripts/
   export-cues.ts       exports every sync point for the soundtrack
   soundtrack.py        score + sound design synthesizer
+  render.sh            final render + ffmpeg mux + sync check
+  check-sync.py        verifies audio/picture alignment in a rendered file
   audio_balance.py     octave-band spectrum comparison
   sheet.sh             contact sheets for frame-by-frame review
 ```

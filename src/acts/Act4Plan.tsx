@@ -69,7 +69,7 @@ export const Act4Plan: React.FC = () => {
   const f = useCurrentFrame();
 
   // --- red field collapses into the now dot (screen center) --------------------------
-  const shut = prog(f, 0, 16, Easing.bezier(0.55, 0, 0.15, 1));
+  const shut = prog(f, 0, 15, Easing.bezier(0.2, 0.7, 0.2, 1)); // opens right under the drop
   const retract = prog(f, 13, 26, E.inOut);
 
   // --- camera -----------------------------------------------------------------------
@@ -179,14 +179,14 @@ export const Act4Plan: React.FC = () => {
         <div
           style={{
             position: 'absolute',
-            left: P.x - mix(1400, 6, retract),
-            top: P.y - mix(1400, 1.5, shut),
-            width: mix(2800, 12, retract),
-            height: mix(2800, 3, shut),
+            left: P.x - mix(1270, 6, retract),
+            top: P.y - mix(790, 1.5, shut),
+            width: mix(2540, 12, retract),
+            height: mix(1580, 3, shut),
             borderRadius: retract > 0.9 ? 6 : 0,
             background: C.red,
             transform: `rotate(${rz * shut}deg)`,
-            transformOrigin: `${mix(1400, 6, retract)}px ${mix(1400, 1.5, shut)}px`,
+            transformOrigin: `${mix(1270, 6, retract)}px ${mix(790, 1.5, shut)}px`,
           }}
         />
       )}

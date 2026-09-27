@@ -55,6 +55,10 @@ def place(dst, x, t, gain=1.0, pan=0.0):
     if x.ndim == 1:
         a = (pan + 1) * np.pi / 4
         x = np.stack([x * np.cos(a), x * np.sin(a)], axis=1)
+    x = x.copy()
+    nf = min(len(x), int(0.006 * SR))
+    w = np.cos(np.linspace(0, np.pi / 2, nf)) ** 2
+    x[-nf:] *= w[:, None]
     if i < 0:
         x = x[-i:]
         i = 0
@@ -195,7 +199,7 @@ def pingpong(x, delay_s, fb=0.35, mix=0.3, lp=4000):
 # ---------------------------------------------------------------------------------------
 # instruments
 # ---------------------------------------------------------------------------------------
-def kick(d=0.6, hard=1.0):
+def kick(d=0.9, hard=1.0):
     t = tt(d)
     f = 48 + 110 * np.exp(-t / 0.035) + 40 * np.exp(-t / 0.006)
     body = sine(f, d) * np.exp(-t / (0.26 * hard + 0.05))
@@ -275,6 +279,7 @@ def snap(d=0.6, weight=1.0):
 
 
 def fm_bell(midi, d=3.0, idx=2.2, ratio=3.5, tau=1.2):
+    d = max(d, 5 * tau)
     t = tt(d)
     fc = mtof(midi)
     mod = np.sin(2 * np.pi * fc * ratio * t) * idx * np.exp(-t / 0.35)
@@ -312,7 +317,7 @@ def blip(f0=587.33, up=True, d=0.12):
     """Word-reveal blip: a short sine with an upward (or downward) glide and one slap echo."""
     t = tt(d)
     if up:
-        f = f0 * 2.9 ** (1 - np.exp(-t / 0.018))
+        f = f0 * 1.5 ** (1 - np.exp(-t / 0.01))
     else:
         f = f0 * 0.53 ** (1 - np.exp(-t / 0.012))
     x = sine(f, d) + sine(2 * f, d) * 0.1
@@ -389,11 +394,11 @@ def bass_note(midi, d, drive=1.3):
 CH = {
     'Db': dict(pad=[49, 53, 56, 60, 63], bass=37, arp=[65, 68, 72, 75]),
     'Ab/C': dict(pad=[48, 51, 56, 60, 63], bass=36, arp=[63, 68, 72, 75]),
-    'Fm9': dict(pad=[53, 56, 60, 63, 67], bass=41, arp=[65, 68, 72, 79]),
+    'Fm9': dict(pad=[53, 56, 60, 63, 67], bass=41, arp=[65, 72, 75, 79]),
     'Eb': dict(pad=[51, 55, 58, 63, 65], bass=39, arp=[63, 67, 70, 75]),
     'Ab': dict(pad=[44, 51, 56, 60, 63, 70], bass=32, arp=[68, 72, 75, 80]),
     'Fm': dict(pad=[41, 48, 53, 56, 60], bass=29, arp=[65, 68, 72, 77]),
-    'Gb': dict(pad=[42, 49, 54, 58, 61], bass=30, arp=[66, 70, 73, 78]),
+    'Gb': dict(pad=[42, 49, 53, 54, 58], bass=30, arp=[66, 70, 73, 78]),
 }
 
 # chord per bar (bars 1..17)
@@ -409,63 +414,74 @@ PROG = {
 # ---------------------------------------------------------------------------------------
 # build stems
 # ---------------------------------------------------------------------------------------
+C_ = CUES['cue']
+S_ = CUES['sfx']
+PK = CUES['peaks']
+
+
+def place_at_peak(dst, x, peak_frac, t_peak, gain=1.0, pan=0.0):
+    """Place a swell so that its apex (at peak_frac of its length) lands on t_peak."""
+    place(dst, x, t_peak - peak_frac * len(x) / SR, gain, pan)
+
+
 def build_music():
     drums, bass, pad, arp, bells = buf(), buf(), buf(), buf(), buf()
     kicks = []
 
-    # ---- pad (all bars, brightness automates by section) --------------------------------
-    for b in range(1, 17):
+    # ---- pad --------------------------------------------------------------------------------
+    for b in range(1, 16):
         name = PROG[b]
         start = bar(b)
         d = BAR + 0.9
         if b <= 3:
             level, cut = 0.22 * (0.55 + 0.25 * (b - 1)), 700 + 250 * b
+            if b == 3:
+                d, cut = BAR - 0.25, 900  # stops before the implosion so the hold is silent
         elif b in (6, 7):
-            level, cut = 0.26, 1100  # typing: tucked away
+            level, cut = 0.26, 1100
         elif b in (8, 9):
             level, cut = 0.34, 3200
         elif b in (13, 14):
             level, cut = 0.38, 2400 + (b - 13) * 900
-        elif b >= 15:
-            level, cut = 0.40, 2600
+        elif b == 15:
+            level, cut, d = 0.42, 2600, 2 * BAR + 2.2  # the tonic rings from "fits." and decays
         else:
             level, cut = 0.30, 2200
         notes = CH[name]['pad']
         for m in notes:
-            x = supersaw_note(m, d, voices=5, detune=0.11, cutoff=cut, a=0.12 if b != 4 else 0.02, r=0.9)
+            x = supersaw_note(m, d, voices=5, detune=0.11, cutoff=cut, a=0.12 if b != 4 else 0.02, r=1.5 if b == 15 else 0.9)
             place(pad, x, start, gain=level / len(notes) * 2.2)
-
     pad = filt(pad, sos_hp(170, 2))
 
-    # intro drone (Ab + Eb) that swells into bar 3
-    d = bar(4) - 0.15
+    # intro drone (Ab + Eb) that swells into the headline and stops dead on the slam
+    d = fr(C_['doesntFit'])
     t = tt(d)
     drone = sine(mtof(32), d) * 0.5 + sine(mtof(39), d) * 0.3 + saw_blep(mtof(44), d) * 0.05
     drone = filt(drone, sos_lp(500, 2)) * np.minimum(1, t / 1.6) * (0.5 + 0.5 * (t / d) ** 2)
-    drone[-int(0.25 * SR):] *= np.linspace(1, 0, int(0.25 * SR))
+    drone[-int(0.06 * SR):] *= np.linspace(1, 0, int(0.06 * SR))
     place(pad, drone, 0.0, gain=0.16)
 
-    # ---- drums ------------------------------------------------------------------------
+    # ---- drums ------------------------------------------------------------------------------
     def K(t, g=1.0, hard=1.0):
-        place(drums, kick(0.6, hard), t, g)
+        place(drums, kick(0.9, hard), t, g)
         kicks.append((t, g))
 
-    for b in range(4, 17):
+    for b in range(4, 16):
         s = bar(b)
-        if b in (4, 5):  # logo: half-time, cinematic
+        if b in (4, 5):
             K(s, 1.0)
             K(s + 1.75 * BEAT, 0.55)
             K(s + 2 * BEAT, 0.85)
             place(drums, clap(), s + 2 * BEAT, 0.42)
             for k in range(8):
-                place(drums, hat(0.08, 0.012), s + k * BEAT / 2 + BEAT / 2 * (k % 2 == 1) * 0, 0.10 if k % 2 else 0.05, pan=0.25)
-        elif b in (6, 7):  # typing: just a heartbeat + ticking hats
+                place(drums, hat(0.08, 0.012), s + k * BEAT / 2, 0.10 if k % 2 else 0.05, pan=0.25)
+        elif b in (6, 7):
             K(s, 0.55, 0.8)
             if b == 7:
                 K(s + 2 * BEAT, 0.45, 0.8)
             for k in range(16):
                 place(drums, hat(0.05, 0.008, 9000), s + k * BEAT / 4, 0.045 + 0.03 * (k % 4 == 2), pan=-0.2 + 0.4 * (k % 2))
-        elif b in (8, 9):  # the fitting: full groove
+        elif b in (8, 9):
             for q in range(4):
                 K(s + q * BEAT, 1.0 if q == 0 else 0.85)
                 place(drums, hat(0.25, 0.07, 6500), s + q * BEAT + BEAT / 2, 0.16, pan=0.2)
@@ -474,169 +490,184 @@ def build_music():
             for k in range(16):
                 if k % 2:
                     place(drums, hat(0.05, 0.01, 9500), s + k * BEAT / 4, 0.06, pan=-0.3)
-        elif b in (10, 11, 12):  # features: lighter, still moving
+        elif b in (10, 11, 12):
             K(s, 0.9)
             K(s + 2.5 * BEAT, 0.6)
             place(drums, clap(), s + 2 * BEAT, 0.34)
             for k in range(8):
-                place(drums, hat(0.12, 0.03, 7000), s + k * BEAT / 2, 0.07 + 0.04 * (k % 2), pan=0.15)
-        elif b in (13, 14):  # breakdown: no kick, a ticking clock
+                place(drums, hat(0.12, 0.03, 7000), s + k * BEAT / 2, 0.05, pan=0.15)
+        elif b in (13, 14):
             for k in range(8):
                 place(drums, tick(3000 if k % 2 == 0 else 2300, 0.05, 0.005, 0.5), s + k * BEAT / 2, 0.10 + 0.03 * (b == 14))
         elif b == 15:
-            K(s, 1.0, 1.4)
-        elif b == 16:
-            pass
+            K(s, 1.0, 1.1)
 
-    # ---- bass --------------------------------------------------------------------------
+    # ---- bass ---------------------------------------------------------------------------------
+    def bnote(m, d, drive=1.3, h2=0.22):
+        n = int(d * SR)
+        f = mtof(m)
+        x = sine(f, d) + sine(f * 2, d) * h2 + saw_blep(f, d) * 0.06
+        x = filt(x, sos_lp(900, 2))
+        return sat(x, drive) * adsr(d, 0.006, 0.12, 0.8, 0.08)
+
     for b in range(4, 16):
         name = PROG[b]
         m = CH[name]['bass']
         s = bar(b)
         if b in (8, 9):
-            for k in range(8):  # driving 8ths
-                place(bass, bass_note(m + (12 if k in (3, 7) else 0), BEAT / 2 * 0.95), s + k * BEAT / 2, 0.40)
-        elif b in (6, 7):
-            place(bass, bass_note(m, BAR * 0.98, 1.1), s, 0.22)
-        elif b in (13, 14):
-            place(bass, bass_note(m, BAR * 0.98, 1.1), s, 0.20)
+            for k in range(8):
+                place(bass, bnote(m + (12 if k in (3, 7) else 0), BEAT / 2 * 0.95, 1.3, 0.35), s + k * BEAT / 2, 0.40)
+        elif b in (6, 7, 13, 14):
+            place(bass, bnote(m, BAR * 0.98, 1.1), s, 0.20 if b >= 13 else 0.22)
         elif b == 15:
-            place(bass, bass_note(CH['Ab']['bass'], BAR * 2.2, 1.2), s, 0.36)
+            x = bnote(CH['Ab']['bass'], BAR * 1.6, 1.2)
+            x *= np.concatenate([np.ones(len(x) - int(0.4 * SR)), np.linspace(1, 0, int(0.4 * SR))])
+            place(bass, x, s + 0.06, 0.34)
         else:
-            place(bass, bass_note(m, BEAT * 1.5), s, 0.36)
-            place(bass, bass_note(m, BEAT * 0.45), s + 1.75 * BEAT, 0.26)
-            place(bass, bass_note(m, BEAT * 1.9), s + 2 * BEAT, 0.34)
+            place(bass, bnote(m, BEAT * 1.5), s, 0.36)
+            place(bass, bnote(m, BEAT * 0.45), s + 1.75 * BEAT, 0.26)
+            place(bass, bnote(m, BEAT * 1.9), s + 2 * BEAT, 0.34)
 
-    # ---- pluck arp -----------------------------------------------------------------------
+    # ---- pluck arp ----------------------------------------------------------------------------
     pattern = [0, 2, 1, 3, 2, 1, 3, 2, 0, 2, 1, 3, 2, 3, 1, 2]
-    for b in range(4, 16):
+    for b in range(4, 15):
         name = PROG[b]
         notes = CH[name]['arp']
         s = bar(b)
         if b in (6, 7):
-            gain = 0.05
-            step = 2  # 8ths, tucked
+            gain, step = 0.05, 2
         elif b in (8, 9):
-            gain = 0.13
-            step = 1
+            gain, step = 0.13, 1
         elif b in (13, 14):
-            gain = 0.09
-            step = 1
-        elif b == 15:
-            continue
+            gain, step = 0.09, 1
         else:
-            gain = 0.09
-            step = 2
+            gain, step = 0.08, 2
         for k in range(0, 16, step):
             m = notes[pattern[k]] + (12 if (b in (8, 9) and k in (6, 14)) else 0)
             place(arp, pluck(m, 0.45, 4200 if b in (8, 9) else 3000), s + k * BEAT / 4, gain * (1.0 if k % 4 == 0 else 0.75), pan=(-0.35 if k % 2 else 0.35))
     arp = pingpong(arp, BEAT * 0.75, fb=0.32, mix=0.28)
 
-    # ---- bells: logo moments ---------------------------------------------------------------
+    # ---- bells: logo moments (tied to what's on screen, not the grid) ----------------------------
     for m, off, g in [(68, 0.0, 0.10), (75, 0.02, 0.07), (80, 0.04, 0.05)]:
-        place(bells, fm_bell(m, 3.5, 1.8, 3.5, 1.4), fr(CUES['cue']['drop1']) + off, g)
+        place(bells, fm_bell(m, 3.5, 1.8, 3.5, 1.4), fr(C_['drop1']) + off, g)
     for m, off, g in [(72, 0.0, 0.07), (75, BEAT / 2, 0.06), (80, BEAT, 0.06)]:
-        place(bells, fm_bell(m, 2.5, 1.6, 3.5, 1.0), fr(CUES['cue']['lockup']) + off, g, pan=0.2)
+        place(bells, fm_bell(m, 2.5, 1.6, 3.5, 1.0), fr(S_['wordmark']) + 0.05 + off, g, pan=0.2)
     for m, off, g in [(56, 0.0, 0.10), (68, 0.0, 0.10), (72, 0.03, 0.08), (75, 0.05, 0.07), (82, 0.08, 0.05)]:
-        place(bells, fm_bell(m, 4.5, 2.0, 3.5, 1.8), fr(CUES['cue']['fits']) + off, g)
+        place(bells, fm_bell(m, 4.5, 2.0, 3.5, 1.8), fr(C_['fits']) + off, g)
     for m, off, g in [(80, 0.0, 0.06), (84, BEAT / 2, 0.05)]:
-        place(bells, fm_bell(m, 3.0, 1.4, 3.5, 1.3), fr(CUES['sfx']['lockup2']) + off, g, pan=-0.15)
+        place(bells, fm_bell(m, 3.0, 1.4, 3.5, 1.1), fr(S_['lockup2']) + off, g, pan=-0.15)
 
     return dict(drums=drums, bass=bass, pad=pad, arp=arp, bells=bells, kicks=kicks)
 
 
+def conflict_blip(d=0.08):
+    t = tt(d)
+    x = (np.sin(2 * np.pi * 392.0 * t) + np.sin(2 * np.pi * 415.3 * t)) * 0.5
+    return x * np.minimum(1, t / 0.002) * np.exp(-t / 0.02)
+
+
 def build_sfx():
     fx = buf()
-    c = CUES['cue']
-    s = CUES['sfx']
+    c, s, pk = C_, S_, PK
 
-    # Act 1 — the clock: a soft tick-tock on every beat until the headline lands (the sonic signature)
+    # Act 1 — the clock: a soft tick-tock on every beat until the headline lands
     for k in range(1, 8):
-        tb = k * BEAT
-        place(fx, tick(3000 if k % 2 else 2250, 0.06, 0.006, 0.6), tb, 0.055 + 0.01 * (k % 2), pan=-0.15 if k % 2 else 0.15)
-    # the dot, the line, the grid; rain of meetings; slam; implosion
-    place(fx, tick(2600, 0.1, 0.012, 0.8), fr(c['dotIn']), 0.30)
+        place(fx, tick(3000 if k % 2 else 2250, 0.06, 0.006, 0.6), k * BEAT, 0.055 + 0.01 * (k % 2), pan=-0.15 if k % 2 else 0.15)
     place(fx, whoosh(0.5, 2000, 7000, 3000, 0.3, 0.5), fr(c['lineDraw']) - 0.02, 0.05)
     for k in range(9):
         place(fx, tick(2200 + 200 * (k % 3), 0.04, 0.004, 0.5), fr(c['gridDraw']) + k * 0.035, 0.05, pan=(k - 4) / 5)
+    for i, f0 in enumerate([622.25, 830.61]):  # "Your" "week" — Eb5, Ab5
+        place(fx, blip(f0), fr(c['yourWeek'] + i * 9 + 3), 0.09)
+    for i, f0 in enumerate([830.61, 1046.5, 1244.5, 1396.9, 1661.2]):  # descriptor, Ab pentatonic
+        place(fx, blip(f0), fr(c['lockup'] + 22 + i * 5 + 3), 0.035, pan=(i - 2) / 6)
     for i, f in enumerate(CUES['rain']):
         r = np.random.default_rng(100 + i)
-        place(fx, tock(1000 + r.random() * 900, 0.1, 0.02 + r.random() * 0.02, 0.25), fr(f), 0.10 + 0.08 * (i / len(CUES['rain'])), pan=r.random() * 1.6 - 0.8)
-    for i, f0 in enumerate([587.33, 783.99]):  # "Your" "week"
-        place(fx, blip(f0), fr(c['yourWeek'] + i * 9 + 3), 0.09)
-    for i in range(5):  # "The calendar that plans itself."
-        place(fx, blip([783.99, 880, 987.77, 1174.66, 1318.5][i]), fr(c['lockup'] + 22 + i * 5 + 3), 0.035, pan=(i - 2) / 6)
+        place(fx, tock(1000 + r.random() * 900, 0.1, 0.02 + r.random() * 0.02, 0.25), fr(f), 0.09 + 0.08 * (i / len(CUES['rain'])), pan=r.random() * 1.6 - 0.8)
     place(fx, riser(1.9, 200, 6000, True, 53), fr(c['yourWeek']) + 0.1, 0.20)
-    place(fx, sub_boom(2.2, 58, 38), fr(c['doesntFit']), 0.55)
+    place(fx, sub_boom(1.6, 58, 38), fr(c['doesntFit']), 0.55)
     place(fx, clap(0.5), fr(c['doesntFit']), 0.35)
     place(fx, filt(noise(0.6), sos_bp(200, 3000)) * expdec(0.6, 0.12), fr(c['doesntFit']), 0.20)
-    place(fx, riser(1.4, 400, 9000, True, 60), fr(c['doesntFit']) + 0.25, 0.14)
-    place(fx, reverse_suck(0.36), fr(c['implodeStart']), 0.55)
+    place(fx, riser(1.2, 400, 9000, True, 60), fr(c['doesntFit']) + 0.25, 0.14)
+    place(fx, reverse_suck(0.3), fr(c['implodeStart']), 0.55)
 
-    # Act 2 — drop 1: flood + mark snaps + wordmark swoosh + fly into app
+    # Act 2 — drop 1 on silence: flood + mark snaps + wordmark + fly into the app
     place(fx, sub_boom(2.6, 60, 36), fr(c['drop1']), 0.75)
     place(fx, whoosh(0.35, 150, 1400, 300, 0.2), fr(c['drop1']), 0.22)
     place(fx, snap(0.6, 0.8), fr(s['markSnapA']), 0.42, pan=-0.2)
     place(fx, snap(0.6, 1.0), fr(s['markSnapB']), 0.46, pan=0.2)
-    place(fx, whoosh(0.55, 500, 3500, 1200, 0.35, 0.6), fr(s['wordmark']) - 0.05, 0.12)
-    place(fx, whoosh(0.75, 250, 3000, 500, 0.6, 1.0), fr(s['flyWhoosh']), 0.22)
+    place(fx, whoosh(0.55, 500, 3500, 1200, 0.35, 0.6), fr(s['wordmark']) - 0.1, 0.12)
+    place_at_peak(fx, whoosh(0.75, 250, 1800, 400, 0.6, 1.0), 0.6, fr(pk['fly']), 0.40)
 
-    # Act 3 — week loads, zoom, typing, click, flood
+    # Act 3 — week loads, clashes, zoom, typing, click, flood
     for i, f in enumerate(CUES['cascade']):
         place(fx, tick(2800 + (i % 5) * 180, 0.03, 0.003, 0.5), fr(f), 0.035, pan=(i % 7 - 3) / 4)
-    place(fx, whoosh(0.9, 200, 1800, 400, 0.55, 0.6), fr(s['zoomWhoosh']), 0.16)
+    for i, f in enumerate(CUES['clashes']):
+        place(fx, conflict_blip(), fr(f), 0.09, pan=-0.6 + 1.2 * i / 6)
+    place_at_peak(fx, whoosh(0.9, 200, 1500, 400, 0.55, 0.6), 0.55, fr(pk['zoom']), 0.30)
+    last = -1e9
     for i, f in enumerate(CUES['keys']):
-        place(fx, key_click(i), fr(f), 0.13, pan=((i * 37) % 11 - 5) / 20)
-    place(fx, whoosh(0.5, 400, 2600, 700, 0.6, 0.4), fr(s['macroWhoosh']), 0.12)
+        if f - last < 2:
+            continue
+        last = f
+        r = np.random.default_rng(900 + i)
+        if CUES['keySpace'][i]:
+            place(fx, tock(700 * (0.94 + 0.12 * r.random()), 0.08, 0.02, 0.3), fr(f), 0.14, pan=((i * 37) % 11 - 5) / 20)
+        else:
+            g = 0.18 if CUES['keyWordStart'][i] else 0.09
+            place(fx, key_click(i), fr(f), g, pan=((i * 37) % 11 - 5) / 20)
+    place_at_peak(fx, whoosh(0.5, 400, 2600, 700, 0.6, 0.4), 0.6, fr(pk['macro']), 0.20)
     place(fx, riser(1.6, 250, 9000, True, 56), fr(c['click']) - 1.1, 0.22)
     place(fx, ui_click(), fr(s['click']), 0.60)
-    place(fx, whoosh(0.3, 300, 5000, 2000, 0.9, 0.3), fr(c['redFill']), 0.26)
+    place(fx, whoosh(0.3, 300, 5000, 2000, 0.9, 0.3), fr(s['flood']), 0.26)
 
     # Act 4 — drop 2: the fitting
-    place(fx, sub_boom(2.4, 62, 38), fr(c['drop2']), 0.70)
-    place(fx, whoosh(0.4, 3000, 400, 150, 0.1, 0.4), fr(c['drop2']), 0.20)
+    place(fx, sub_boom(2.4, 62, 38), fr(c['drop2']), 0.5)
+    place(fx, whoosh(0.4, 3000, 400, 150, 0.1, 0.4), fr(c['drop2']), 0.22)
+    root_hz = {8: 69.3, 9: 65.4}  # Db, Ab/C — tune the heavy landings to the chord
     for i, l in enumerate(CUES['landings']):
         r = np.random.default_rng(300 + i)
+        tl = fr(l['f'])
         if l['heavy']:
-            place(fx, tock(600 + r.random() * 200, 0.2, 0.05, 1.0), fr(l['f']), 0.26, pan=r.random() - 0.5)
-            place(fx, sub_boom(0.7, 70, 48), fr(l['f']), 0.20)
+            rh = root_hz[8 if tl < bar(9) else 9]
+            place(fx, tock(600 + r.random() * 200, 0.2, 0.05, 1.0), tl, 0.26, pan=r.random() - 0.5)
+            place(fx, sub_boom(1.2, rh, rh / 2), tl, 0.14)
         else:
-            place(fx, tock(1100 + r.random() * 800, 0.12, 0.028, 0.35), fr(l['f']), 0.15, pan=r.random() * 1.4 - 0.7)
-    place(fx, whoosh(1.1, 200, 1600, 300, 0.45, 0.8), fr(s['straighten']), 0.16)
-    place(fx, fm_bell(87, 1.2, 1.2, 2.0, 0.35), fr(s['toast']), 0.07, pan=0.1)
-    place(fx, fm_bell(92, 1.2, 1.0, 2.0, 0.35), fr(s['toast']) + 0.09, 0.05, pan=0.1)
+            place(fx, tock(1100 + r.random() * 800, 0.12, 0.028, 0.35), tl, 0.15, pan=r.random() * 1.4 - 0.7)
+    place_at_peak(fx, whoosh(1.1, 200, 1600, 300, 0.45, 0.8), 0.45, fr(pk['straighten']), 0.26)
+    place(fx, fm_bell(87, 1.2, 1.2, 2.0, 0.35), fr(s['toast']), 0.09, pan=0.1)
+    place(fx, fm_bell(92, 1.2, 1.0, 2.0, 0.35), fr(s['toast']) + 0.09, 0.07, pan=0.1)
 
-    # Act 5 — features
-    place(fx, whoosh(0.7, 300, 2400, 500, 0.5, 0.6), fr(s['cardMorph']), 0.14)
-    place(fx, whoosh(0.35, 800, 2500, 1200, 0.5, 0.3), fr(s['f1Lift']), 0.07)
-    place(fx, tock(1300, 0.12, 0.03, 0.4), fr(s['f1Land']), 0.18)
+    # Act 5 — features (louder, and on the frames where things actually happen)
+    place_at_peak(fx, whoosh(0.7, 300, 2000, 500, 0.5, 0.6), 0.5, fr(pk['cardMorph']), 0.24)
+    place(fx, whoosh(0.35, 800, 2500, 1200, 0.5, 0.3), fr(s['f1Lift']), 0.12)
+    place(fx, tock(1300, 0.12, 0.03, 0.4), fr(s['f1Land']), 0.30)
     for i, f in enumerate(s['f1Checks']):
-        place(fx, tick(3400 + i * 260, 0.05, 0.01, 0.7), fr(f), 0.07, pan=0.3)
+        place(fx, tick(3400 + i * 260, 0.05, 0.01, 0.7), fr(f), 0.12, pan=0.3)
     for f in (s['drum2'], s['drum3']):
         for k in range(3):
-            place(fx, tick(2100 - k * 150, 0.04, 0.004, 0.6), fr(f) + k * 0.05, 0.10 - 0.025 * k, pan=-0.4)
-    place(fx, whoosh(0.4, 600, 3000, 900, 0.8, 0.5), fr(s['f2Invite']), 0.10)
+            place(fx, tick(2100 - k * 150, 0.04, 0.004, 0.6), fr(f) + k * 0.05, 0.16 - 0.04 * k, pan=-0.4)
+    place_at_peak(fx, whoosh(0.4, 600, 3000, 900, 0.3, 0.5), 0.3, fr(pk['invite']), 0.18)
     bt = tt(0.25)
-    place(fx, np.sin(2 * np.pi * (170 + 90 * np.exp(-bt / 0.02)) * bt) * np.exp(-bt / 0.06), fr(s['f2Bounce']), 0.30)
-    place(fx, tick(2600, 0.06, 0.01, 0.8), fr(s['f2Reply']), 0.08)
-    place(fx, fm_bell(84, 0.8, 0.8, 2.0, 0.25), fr(s['f3Late']), 0.05)
-    for k in range(4):
-        place(fx, tock(1400 + k * 90, 0.08, 0.02, 0.2), fr(s['f3Shift']) + 0.12 + k * 0.06, 0.07)
-    place(fx, whoosh(0.7, 300, 2000, 400, 0.5, 0.6), fr(s['backToWeek']), 0.12)
+    place(fx, np.sin(2 * np.pi * (170 + 90 * np.exp(-bt / 0.02)) * bt) * np.exp(-bt / 0.06), fr(s['f2Bounce']), 0.45)
+    place(fx, tick(2600, 0.06, 0.01, 0.8), fr(s['f2Reply']), 0.15)
+    place_at_peak(fx, whoosh(0.3, 500, 2500, 800, 0.5, 0.6), 0.5, fr(pk['inviteExit']), 0.14)
+    place(fx, fm_bell(84, 0.8, 0.8, 2.0, 0.25), fr(s['f3Late']), 0.08)
+    place(fx, tock(1400, 0.08, 0.02, 0.2), fr(s['f3LateSettle']), 0.13)
+    place(fx, tock(1500, 0.08, 0.02, 0.2), fr(s['f3ShiftSettle']), 0.13)
+    place_at_peak(fx, whoosh(0.7, 300, 2000, 400, 0.4, 0.6), 0.4, fr(pk['back']), 0.22)
 
-    # Act 6 — pull back, the fit, lockup
-    place(fx, whoosh(2.0, 150, 1200, 250, 0.18, 1.0), fr(s['pullBack']) - 0.12, 0.2)
-    place(fx, riser(3.4, 150, 7000, True, 51), fr(c['converge']) - 1.5, 0.16)
-    place(fx, whoosh(0.4, 300, 2500, 800, 0.8, -0.8), fr(s['wordsIn']), 0.10)
-    place(fx, whoosh(0.4, 300, 2500, 800, 0.8, 0.8), fr(s['wordsIn']), 0.10)
-    place(fx, snap(0.8, 1.2), fr(s['fitsSnap']), 0.55)
-    place(fx, sub_boom(3.0, 55, 34), fr(s['fitsSnap']), 0.60)
+    # Act 6 — pull back, the fit, the words become the mark, lockup
+    place_at_peak(fx, whoosh(2.0, 150, 1200, 250, 0.18, 1.0), 0.18, fr(pk['pullBack']) + 0.1, 0.26)
+    rz = 3.2
+    place(fx, riser(rz, 150, 7000, True, 51), fr(c['fits']) - 0.2 - rz, 0.16)
+    place(fx, whoosh(0.4, 300, 2500, 800, 0.8, -0.8), fr(s['wordsIn']), 0.12)
+    place(fx, whoosh(0.4, 300, 2500, 800, 0.8, 0.8), fr(s['wordsIn']), 0.12)
+    place(fx, snap(0.8, 1.0), fr(s['fitsSnap']), 0.55)
+    place(fx, sub_boom(3.0, 103.8, 51.9), fr(s['fitsSnap']), 0.35)
     place(fx, tock(420, 0.3, 0.06, 1.0), fr(s['wordsFill']), 0.16)
-    place(fx, snap(0.6, 0.8), fr(s['markSnap2A']), 0.34, pan=-0.2)
-    place(fx, snap(0.6, 0.9), fr(s['markSnap2B']), 0.36, pan=0.2)
-    place(fx, whoosh(0.55, 500, 3500, 1200, 0.35, 0.6), fr(s['lockup2']), 0.09)
-    place(fx, tick(2600, 0.2, 0.02, 0.8), fr(s['finalBlink']), 0.20)
-    place(fx, sub_boom(1.6, 50, 38), fr(s['finalBlink']), 0.22)
+    place(fx, snap(0.6, 0.9), fr(s['markMorph']), 0.40)
+    place(fx, whoosh(0.55, 500, 3500, 1200, 0.35, 0.6), fr(s['lockup2']) - 0.1, 0.10)
+    place(fx, tick(2600, 0.2, 0.02, 0.8), fr(s['finalBlink']), 0.12)
     return fx
 
 
@@ -660,10 +691,11 @@ def limiter(x, ceiling=0.89, look=0.004, release=0.08):
     a = a4[: (len(a4) // 4) * 4].reshape(-1, 4).max(axis=1)
     a = np.pad(a, (0, max(0, len(x) - len(a))))[: len(x)]
     la = int(look * SR)
-    # lookahead peak hold
     peak = np.maximum.reduce([np.roll(a, -k) for k in range(0, la, 8)])
     gain = np.minimum(1.0, ceiling / np.maximum(peak, 1e-9))
-    # smooth release (attack is instant through lookahead)
+    win = np.hanning(max(3, la))
+    win /= win.sum()
+    gain = np.minimum(gain, np.convolve(gain, win, mode='same'))
     rel = np.exp(-1 / (release * SR))
     out = np.empty_like(gain)
     g = 1.0
@@ -673,11 +705,21 @@ def limiter(x, ceiling=0.89, look=0.004, release=0.08):
     return x * out[:, None]
 
 
+def envelope(points):
+    """Piecewise-linear gain automation from (time, gain) points, smoothed."""
+    t = np.arange(N) / SR
+    ts, gs = zip(*points)
+    g = np.interp(t, ts, gs)
+    return filt(g, sos_lp(4, 1))[:, None]
+
+
 def main():
     os.makedirs(os.path.join(ROOT, 'out', 'stems'), exist_ok=True)
     os.makedirs(os.path.join(ROOT, 'public', 'audio'), exist_ok=True)
     m = build_music()
     fx = build_sfx()
+    t = np.arange(N) / SR
+    end = CUES['total'] / FPS
 
     sc = sidechain(m['kicks'])
     music = (
@@ -687,40 +729,47 @@ def main():
         + m['arp'] * (0.7 + 0.3 * sc) * 1.7
         + m['bells'] * 1.5
     )
-    # reverb sends
-    wet = reverb(m['pad'] * 0.25 + m['arp'] * 0.35 + m['bells'] * 0.6 + m['drums'] * 0.06, IR_HALL)
-    fxwet = reverb(fx * 0.18, IR_ROOM) + reverb(fx * 0.08, IR_HALL)
+    # reverb sends carry no sub (keeps the low end tight)
+    send = filt(m['pad'] * 0.25 + m['arp'] * 0.35 + m['bells'] * 0.6 + m['drums'] * 0.06, sos_hp(250, 2))
+    wet = reverb(send, IR_HALL)
+    fxs = filt(fx, sos_hp(250, 2))
+    fxwet = reverb(fxs * 0.18, IR_ROOM) + reverb(fxs * 0.08, IR_HALL)
 
-    # typing section: tuck the music under the keys (automation on music bus)
-    t = np.arange(N) / SR
-    duck = np.ones(N)
-    a0, a1 = bar(6, 1), bar(8)
-    duck = np.where((t > a0) & (t < a1), 0.72, 1.0)
-    duck = filt(duck, sos_lp(3, 1))[:, None]
-
-    fx = filt(fx, sos_hp(24, 2))
-    # tame the sub content of the sound design (booms), keep the transients
-    fx_low = filt(fx, sos_lp(90, 2))
-    fx = fx - fx_low * 0.45
-    # the "suck": music ducks hard for ~0.2 s right before each drop, then slams back on the downbeat
+    # music-bus automation: typing tucked, features under the UI sounds, breakdown lifts into "fits."
+    bus = envelope([
+        (0, 1.0), (bar(6, 1), 1.0), (bar(6, 1.5), 0.72), (bar(8) - 0.02, 0.72), (bar(8), 1.0),
+        (bar(10) - 0.1, 1.0), (bar(10), 0.72), (bar(13) - 0.1, 0.72), (bar(13), 0.85),
+        (bar(15) - 0.3, 0.85), (bar(15), 1.0), (DUR, 1.0),
+    ])
+    # the "suck": near-silence before each drop, then everything lands on the downbeat
     suck = np.ones(N)
-    for tdrop in (fr(CUES['cue']['drop2']), fr(CUES['cue']['fits'])):
-        a = (t > tdrop - 0.2) & (t < tdrop)
-        ramp = np.clip((t - (tdrop - 0.2)) / 0.04, 0, 1)
-        suck = np.where(a, 1 - 0.85 * ramp, suck)
+    for (a0, a1, depth) in [
+        (fr(C_['silence']), fr(C_['drop1']), 0.95),
+        (fr(C_['drop2']) - 0.2, fr(C_['drop2']), 0.85),
+        (fr(C_['fits']) - 0.2, fr(C_['fits']), 0.85),
+    ]:
+        w = (t > a0) & (t < a1)
+        ramp = np.clip((t - a0) / 0.04, 0, 1)
+        suck = np.where(w, np.minimum(suck, 1 - depth * ramp), suck)
     suck = suck[:, None]
-    mix = (music + wet * 0.6) * duck * suck + fx * 1.25 + fxwet
-    mix = filt(mix, sos_hp(28, 2))  # clean sub rumble
-    # mono below 120 Hz (keeps the low end solid on every speaker)
+
+    fx_low = filt(fx, sos_lp(90, 2))
+    fx = filt(fx - fx_low * 0.45, sos_hp(24, 2))
+    # drop 1 lands on true silence: the hold after the implosion ducks everything, reverb tails included
+    hold = np.ones(N)
+    a0, a1 = fr(C_['silence']) - 0.05, fr(C_['drop1'])
+    w = (t > a0) & (t < a1)
+    hold = np.where(w, 1 - 0.97 * np.clip((t - a0) / 0.05, 0, 1), hold)[:, None]
+    mix = ((music + wet * 0.6) * bus * suck + fx * 1.25 + fxwet) * hold
+    mix = filt(mix, sos_hp(28, 2))
+    # mono below 120 Hz
     mid = mix.mean(axis=1, keepdims=True)
-    side = (mix[:, :1] - mix[:, 1:]) / 2
-    side = filt(side, sos_hp(120, 2))
+    side = filt((mix[:, :1] - mix[:, 1:]) / 2, sos_hp(120, 2))
     mix = np.concatenate([mid + side, mid - side], axis=1)
-    # bus compressor: 2:1 above -14 dBFS RMS (5 ms detector), 15 ms attack / 120 ms release
-    det = np.sqrt(filt(np.mean(mix ** 2, axis=1), sos_lp(1 / 0.005 / (2 * np.pi) * 6.28, 1)).clip(1e-12))
-    lvl = 20 * np.log10(det)
-    over = np.maximum(0, lvl - (-14))
-    gr_db = -over * (1 - 1 / 2)
+    # bus compressor: 2:1 above -14 dBFS (true 5 ms RMS detector), 15 ms attack / 120 ms release
+    det = np.sqrt(filt(np.mean(mix ** 2, axis=1), sos_lp(1 / (2 * np.pi * 0.005), 1)).clip(1e-12))
+    over = np.maximum(0, 20 * np.log10(det) + 14)
+    gr_db = -over * 0.5
     att, rel = np.exp(-1 / (0.015 * SR)), np.exp(-1 / (0.12 * SR))
     g = np.empty_like(gr_db)
     cur = 0.0
@@ -728,25 +777,23 @@ def main():
         cur = x + (cur - x) * (att if x < cur else rel)
         g[i] = cur
     mix *= (10 ** (g / 20))[:, None]
-    # gentle glue
     mix = sat(mix * 0.9, 1.15)
-
-    # end: fade after the final blink, trim to film length + small tail
-    end = CUES['total'] / FPS
-    fade = np.clip((end + 0.9 - t) / 0.9, 0, 1) ** 1.5
-    mix *= fade[:, None]
-
-    # air: gentle high shelf (~+3 dB above 2.5 kHz)
     mix = mix + filt(mix, sos_hp(2500, 1)) * 0.25
 
-    # loudness: -14 LUFS integrated, then a true-peak-safe limiter at -1 dBFS
+    # natural ending: the tail decays over the held end card and reaches silence at the last frame
+    fade = np.clip((end - 0.03 - t) / 1.3, 0, 1) ** 2
+    mix *= fade[:, None]
+
     import pyloudnorm as pyln
     meter = pyln.Meter(SR)
+    body = mix[: int((end - 1.5) * SR)]
     for _ in range(3):
-        lufs = meter.integrated_loudness(mix)
+        lufs = meter.integrated_loudness(body)
         mix *= 10 ** ((-14.0 - lufs) / 20)
         mix = limiter(mix, ceiling=0.85)
-    mix = mix[: int((end + 0.05) * SR)]
+        body = mix[: int((end - 1.5) * SR)]
+    mix = mix[: int(end * SR)]
+    mix[-480:] = 0
 
     import soundfile as sf
     sf.write(os.path.join(ROOT, 'public', 'audio', 'soundtrack.wav'), mix.astype(np.float32), SR, subtype='PCM_24')
