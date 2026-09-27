@@ -75,7 +75,7 @@ export const Act4Plan: React.FC = () => {
   const retract = prog(f, 13, 26, E.inOut);
 
   // --- camera -----------------------------------------------------------------------
-  const st = prog(f, L(CUE.straighten), L(CUE.straighten) + 64, E.inOut); // TODO(v6): STRAIGHTEN_LEN, E.cam
+  const st = prog(f, L(CUE.straighten), L(CUE.straighten) + STRAIGHTEN_LEN, E.cam);
   const orbit = prog(f, 0, L(CUE.straighten) + 10, E.smooth);
   const rx = mix(mix(46, 36, orbit), 0, st);
   const rz = mix(mix(-11, -5, orbit), 0, st);

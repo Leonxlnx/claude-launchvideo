@@ -8,7 +8,7 @@ import soundfile as sf
 from scipy import signal
 
 video = sys.argv[1]
-ref, sr = sf.read('public/audio/soundtrack.wav', always_2d=True)
+ref, sr = sf.read(sys.argv[2] if len(sys.argv) > 2 else 'public/audio/soundtrack.wav', always_2d=True)
 raw = subprocess.run(['ffmpeg', '-loglevel', 'error', '-i', video, '-f', 'f32le', '-ac', '2', '-ar', str(sr), '-'], capture_output=True, check=True).stdout
 dec = np.frombuffer(raw, dtype=np.float32).reshape(-1, 2)
 worst = 0

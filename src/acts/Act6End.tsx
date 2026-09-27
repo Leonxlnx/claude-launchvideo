@@ -199,6 +199,9 @@ export const Act6End: React.FC = () => {
   const fillA = prog(f, asm - 4, asm + 6, E.out);
   const fillB = prog(f, asm - 1, asm + 6, E.out);
   const fill = fillA;
+  // a slow push while the line holds, so it never sits dead still before the strike
+  const k = punch * mix(1, 1.03, prog(f, meetAt, asm - 4, E.linear));
+  const sc = (r: R): R => ({ x: 960 + (r.x - 960) * k, y: 540 + (r.y - 540) * k, w: r.w * k, h: r.h * k });
   const morph = prog(f, asm + 6, asm + 40, E.inOut); // blocks → mark pieces
   const M1 = 140;
   const wm = useMemo(() => ({ width: measureTracked('tessel', WORD.size, WORD.weight, WORD.track) }), []);
@@ -213,8 +216,8 @@ export const Act6End: React.FC = () => {
   const u = size / 100;
   const top = baseY - SIZE * 0.74;
   const bh = SIZE * 0.94;
-  const wordA: R = { x: lx + w1x - 10, y: top - 6, w: m1.width + 16, h: bh };
-  const wordB: R = { x: lx + m1.width + space + w2x - 10, y: top - 6, w: m2.width + 16, h: bh };
+  const wordA: R = sc({ x: lx + w1x - 10, y: top - 6, w: m1.width + 16, h: bh });
+  const wordB: R = sc({ x: lx + m1.width + space + w2x - 10, y: top - 6, w: m2.width + 16, h: bh });
   const pieceA: R = { x: mx + MARK.A.x * u, y: my + MARK.A.y * u, w: MARK.A.w * u, h: MARK.A.h * u };
   const pieceB: R = { x: mx + MARK.B.x * u, y: my + MARK.B.y * u, w: MARK.B.w * u, h: MARK.B.h * u };
   const A = lerpR(wordA, pieceA, morph);
@@ -224,7 +227,7 @@ export const Act6End: React.FC = () => {
   // the red period slides into the mark's dot slot
   const px = lx + m1.width + space + m2.width + dotD * 0.62 + w2x;
   const py = baseY - SIZE * 0.078 - dotD / 2;
-  const periodPos = { x: 960 + (px - 960) * punch, y: 540 + (py - 540) * punch };
+  const periodPos = { x: 960 + (px - 960) * k, y: 540 + (py - 540) * k };
   const markDot = { x: mx + MARK.D.cx * u, y: my + MARK.D.cy * u, r: MARK.D.r * u };
   const final = L(CUE.final);
   const blink = f > final ? 1 + 0.16 * Math.sin(Math.min(1, (f - final) / 16) * Math.PI) : 1;
@@ -241,7 +244,7 @@ export const Act6End: React.FC = () => {
     y: mix(nowP.y, periodRest.y, hop * hop) - 190 * 4 * hop * (1 - hop),
     r: mix(nowR, dotD / 2, HOP_EASE(hop)),
   };
-  if (hop >= 1) Object.assign(period, { x: periodPos.x, y: periodPos.y, r: (dotD / 2) * punch });
+  if (hop >= 1) Object.assign(period, { x: periodPos.x, y: periodPos.y, r: (dotD / 2) * k });
   const dot = {
     x: mix(period.x, markDot.x, morph),
     y: mix(period.y, markDot.y, morph),
@@ -278,7 +281,7 @@ export const Act6End: React.FC = () => {
       <AbsoluteFill style={{ background: '#fff', opacity: rack * 0.82 * (1 - quiltGone) }} />
 
       {/* Everything fits. */}
-      <div style={{ position: 'absolute', left: 0, top: 0, width: 1920, height: 1080, transform: `scale(${punch})`, transformOrigin: '960px 540px', opacity: morph > 0 ? 0 : 1 }}>
+      <div style={{ position: 'absolute', left: 0, top: 0, width: 1920, height: 1080, transform: `scale(${k})`, transformOrigin: '960px 540px', opacity: morph > 0 ? 0 : 1 }}>
         {[
           { t: 'Everything', x: lx + w1x },
           { t: 'fits', x: lx + m1.width + space + w2x },
@@ -362,8 +365,6 @@ export const Act6End: React.FC = () => {
                   height: r.h,
                   borderRadius: Math.min(rad, w / 2),
                   background: C.ink,
-                  transformOrigin: `${r.w / 2}px ${r.h / 2}px`,
-                  transform: morph === 0 ? `scale(${punch})` : undefined,
                 }}
               />
             );

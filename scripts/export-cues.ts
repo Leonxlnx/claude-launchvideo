@@ -7,7 +7,7 @@ import { spring, SpringConfig } from 'remotion';
 import { ACT, CUE, FPS, TOTAL } from '../src/timeline';
 import { RAIN } from '../src/acts/act1-data';
 import { KEY_FRAMES, PROMPT } from '../src/acts/Act3Prompt';
-import { LANDINGS } from '../src/acts/Act4Plan';
+import { LANDINGS, STRAIGHTEN_LEN } from '../src/acts/Act4Plan';
 import { BEFORE } from '../src/app/data';
 import { PULL_EASE, PULL_END, QUILT_TILES, TILE_SPR } from '../src/acts/Act6End';
 import { E } from '../src/lib/anim';
@@ -71,7 +71,7 @@ const cues = {
     fly: markFrom + peak(flyS, ACT.mark.dur - 14, E.inOut),
     zoom: P + peak(CUE.zoomBar - P, CUE.zoomBar - P + 54, E.cam),
     macro: P + peak(CUE.typeEnd - P - 4, CUE.click - P - 2, E.inOut),
-    straighten: CUE.straighten + peak(0, 64, E.inOut), // TODO(v6): peak(0, STRAIGHTEN_LEN, E.cam)
+    straighten: CUE.straighten + peak(0, STRAIGHTEN_LEN, E.cam),
     cardMorph: feat + peak(0, 44, E.inOut),
     invite: feat + peak(F2 + 16, F2 + 44, E.out),
     inviteExit: feat + peak(F2 + 70, F2 + 96, E.inOut),
