@@ -25,7 +25,7 @@ export const CUE = {
   lineDraw: b(1, 2),
   gridDraw: b(1, 3),
   yourWeek: b(2),
-  rainStart: b(2, 1),
+  rainStart: b(1, 3),
   doesntFit: b(3),
   implodeStart: b(3, 3),
   silence: b(3, 3, 2),

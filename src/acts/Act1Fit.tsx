@@ -1,10 +1,10 @@
 import React from 'react';
 import { AbsoluteFill, Easing, useCurrentFrame } from 'remotion';
 import { C, FONT } from '../brand/tokens';
-import { E, mix, prog, tw } from '../lib/anim';
+import { E, hitPulse, mix, prog, tw } from '../lib/anim';
 import { Words } from '../fx/Words';
 import { CUE } from '../timeline';
-import { ACT1, RAIN, RainBlock } from './act1-data';
+import { ACT1, RAIN, RainBlock, STACK_LIFT } from './act1-data';
 import { fmt, NOW } from '../app/data';
 
 // ACT 1 — "Your week doesn't fit."
@@ -12,7 +12,11 @@ import { fmt, NOW } from '../app/data';
 // then everything implodes back into the dot.
 
 const { colW, hourH, nowY, now } = ACT1;
-const OPEN = Easing.bezier(0.25, 0.6, 0.2, 1); // fast pull-back off the disc, long settle
+// Opening iris: the film opens on a full red frame (the now dot, 80x) that irises down onto the
+// marker and lands on the first tick. Interpolated in log space, so the zoom rate is steady while
+// the edge sweeps in fast and settles; it still has a little speed left when it lands on the tick.
+const IRIS_FROM = 80; // 28px x 80 = 2240px: covers the frame diagonal
+const IRIS = Easing.bezier(0.4, 0, 0.7, 0.92);
 const yOf = (h: number) => nowY + (h - now) * hourH;
 
 const Block: React.FC<{ b: RainBlock; f: number }> = ({ b, f }) => {
@@ -21,14 +25,13 @@ const Block: React.FC<{ b: RainBlock; f: number }> = ({ b, f }) => {
   // fall: accelerate in over 16 frames, then a small damped settle
   const fall = t < 0 ? Math.pow((t + 16) / 16, 2.2) : 1;
   const settle = t >= 0 ? Math.exp(-t / 5) * Math.sin(t / 2.2) * 10 : 0;
-  const y0 = yOf(b.start);
+  // piled blocks rest a little higher per level, so the pile reads as a stack
+  const y0 = yOf(b.start) - STACK_LIFT * b.depth;
   const y = mix(-260 - (y0 + 60), 0, fall) - settle;
-  // piled blocks keep a little of their tilt and offset: nothing lines up any more
-  const rot = mix(b.rot * 0.22, b.rot, 1 - fall);
+  // blocks keep a little of their tilt and offset, piled ones more: nothing lines up any more
+  const rot = mix(b.rot * (b.depth > 0 ? 0.55 : 0.22), b.rot, 1 - fall);
   const x = b.day * colW + 6 + b.jx * 0.6;
   const h = b.dur * hourH - 6;
-  // no titles peeking around the headline
-  const underHeadline = x < 1320 && x + colW > 600 && y0 < 470 && y0 + h > 280;
   return (
     <div
       style={{
@@ -49,8 +52,8 @@ const Block: React.FC<{ b: RainBlock; f: number }> = ({ b, f }) => {
         overflow: 'hidden',
       }}
     >
-      {!underHeadline && <div style={{ fontSize: 22, fontWeight: 580, letterSpacing: '-0.015em', whiteSpace: 'nowrap' }}>{b.title}</div>}
-      {h > 60 && !underHeadline && (
+      <div style={{ fontSize: 22, fontWeight: 580, letterSpacing: '-0.015em', whiteSpace: 'nowrap' }}>{b.title}</div>
+      {h > 60 && (
         <div style={{ fontFamily: FONT.sans, fontVariantNumeric: 'tabular-nums', fontWeight: 460, fontSize: 16, marginTop: 4, color: b.ink ? 'rgba(255,255,255,0.55)' : C.mute }}>
           {String(Math.floor(b.start)).padStart(2, '0')}:{b.start % 1 ? '30' : '00'}
         </div>
@@ -120,18 +123,16 @@ export const Act1Fit: React.FC = () => {
   const worldScale = mix(1, 0.0, imp);
   const worldRot = mix(0, -14, imp);
 
-  // the film opens close on the now dot: a big red disc that contracts into the marker while
-  // the day draws out of it (the camera pulls back), then a slow push-in over the act
-  const open = tw(f, 0, CUE.lineDraw + 24, 9, 1, OPEN);
-  const push = tw(f, 0, CUE.implodeStart, 1, 1.07, E.smooth) * mix(1, 1.12, (open - 1) / 8);
+  // the film opens on a full red frame: the now dot, irising down onto the marker by the first
+  // tick (the camera pulls back with it), then a slow push-in over the act
+  const open = Math.exp(Math.log(IRIS_FROM) * (1 - IRIS(prog(f, 0, CUE.dotIn, E.linear))));
+  const push = tw(f, 0, CUE.implodeStart, 1, 1.07, E.smooth) * mix(1, 1.12, (open - 1) / (IRIS_FROM - 1));
 
   // dot
-  // the dot is there from the first frame and ticks on every beat until the headline arrives
+  // the dot ticks with the soundtrack on every beat (k = 1..7). The first tick is the iris landing:
+  // the disc arrives at marker size on it and rebounds. hitPulse peaks 2 frames after the tick.
   let tick = 0;
-  for (let k = 1; k < 4; k++) {
-    const t = f - k * 30;
-    if (t >= 0 && t < 14) tick = Math.max(tick, Math.sin((t / 14) * Math.PI) * (k === 1 ? 0.3 : 0.18));
-  }
+  for (let k = 1; k < 8; k++) tick = Math.max(tick, hitPulse(f - k * 30) * (k === 1 ? 0.3 : 0.18));
   const dotIn = 1 + tick;
   const lineP = prog(f, CUE.lineDraw, CUE.lineDraw + 40, E.out);
   const lineRetract = prog(f, CUE.implodeStart, CUE.silence, E.in);
@@ -144,8 +145,8 @@ export const Act1Fit: React.FC = () => {
 
   // rain blur grows as the pile gets dense (depth of field behind the type)
   // the pile stays sharp and messy until the headline takes over, then drops into depth of field
-  const rainBlur = tw(f, CUE.doesntFit - 4, CUE.doesntFit + 18, 0, 3.5, E.smooth);
-  const rainDim = tw(f, CUE.doesntFit, CUE.doesntFit + 20, 1, 0.55, E.smooth);
+  const rainBlur = tw(f, CUE.doesntFit - 4, CUE.doesntFit + 18, 0, 2, E.smooth);
+  const rainDim = tw(f, CUE.doesntFit, CUE.doesntFit + 20, 1, 0.75, E.smooth);
 
   return (
     <AbsoluteFill style={{ background: C.paper, overflow: 'hidden' }}>
