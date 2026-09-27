@@ -132,7 +132,7 @@ export const Act1Fit: React.FC = () => {
   // the dot ticks with the soundtrack on every beat (k = 1..7). The first tick is the iris landing:
   // the disc arrives at marker size on it and rebounds. hitPulse peaks 2 frames after the tick.
   let tick = 0;
-  for (let k = 1; k < 8; k++) tick = Math.max(tick, hitPulse(f - k * 30) * (k === 1 ? 0.3 : 0.18));
+  for (let k = 1; k < 8; k++) tick = Math.max(tick, hitPulse(f - k * 30) * (k <= 3 ? 0.3 : 0.18));
   const dotIn = 1 + tick;
   const lineP = prog(f, CUE.lineDraw, CUE.lineDraw + 40, E.out);
   const lineRetract = prog(f, CUE.implodeStart, CUE.silence, E.in);
@@ -163,11 +163,18 @@ export const Act1Fit: React.FC = () => {
             <Block key={b.i} b={b} f={f} />
           ))}
         </AbsoluteFill>
-        {/* white wash under the type keeps it legible over the pile */}
+        {/* white wash under the type: only with the slam (before it the ink rain stays true ink);
+            until then a tight wash holds just the first headline */}
+        <AbsoluteFill
+          style={{
+            background: 'radial-gradient(ellipse 30% 13% at 50% 35%, rgba(255,255,255,0.7), rgba(255,255,255,0) 72%)',
+            opacity: tw(f, CUE.yourWeek, CUE.yourWeek + 30, 0, 1, E.smooth),
+          }}
+        />
         <AbsoluteFill
           style={{
             background: 'radial-gradient(ellipse 60% 42% at 50% 52%, rgba(255,255,255,0.92), rgba(255,255,255,0) 72%)',
-            opacity: tw(f, CUE.yourWeek, CUE.doesntFit, 0, 1, E.smooth),
+            opacity: tw(f, CUE.doesntFit - 8, CUE.doesntFit + 10, 0, 1, E.smooth),
           }}
         />
         {/* now line (under its label) */}

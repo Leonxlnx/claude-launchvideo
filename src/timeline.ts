@@ -22,8 +22,8 @@ export const TOTAL = b(17) + 60; // 33.0s
 // Musical/visual cues the sound design locks to (absolute frames).
 export const CUE = {
   dotIn: b(1, 1),
-  lineDraw: b(1, 2),
-  gridDraw: b(1, 3),
+  lineDraw: b(1, 1, 2),
+  gridDraw: b(1, 2),
   yourWeek: b(2),
   rainStart: b(1, 3),
   doesntFit: b(3),

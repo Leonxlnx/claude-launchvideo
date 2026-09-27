@@ -576,6 +576,9 @@ def marker(d=0.25):
     return y * env[:, None]
 
 
+TICK, TOCK = mtof(104), mtof(99)  # the clock: Ab7 tick, Eb7 tock
+
+
 def conflict_blip(d=0.08):
     t = tt(d)
     x = (np.sin(2 * np.pi * 784.0 * t) + np.sin(2 * np.pi * 830.6 * t)) * 0.5
@@ -592,9 +595,9 @@ def build_sfx():
     # the iris sweeping in (fastest ~f8), and the clock's first tick as the dot lands (f30)
     place(fx, sub_boom(0.6, 87.3, 43.65, 0.08), 0.0, 0.22)  # F2 -> F1 (bar 1: Fm)
     place_at_peak(fx, whoosh(0.55, 700, 3600, 900, 0.25, 0.4, 0.1), 0.25, fr(8), 0.14)
-    place(fx, tick(3000, 0.08, 0.008, 0.8), fr(c['dotIn']), 0.13)
+    place(fx, tick(TICK, 0.08, 0.008, 0.8), fr(c['dotIn']), 0.13)
     for k in range(2, 8):
-        place(fx, tick(3000 if k % 2 else 2250, 0.06, 0.006, 0.6), k * BEAT, 0.055 + 0.01 * (k % 2), pan=-0.15 if k % 2 else 0.15)
+        place(fx, tick(TICK if k % 2 else TOCK, 0.06, 0.006, 0.6), k * BEAT, 0.055 + 0.01 * (k % 2), pan=-0.15 if k % 2 else 0.15)
     place(fx, whoosh(0.5, 2000, 7000, 3000, 0.3, 0.5), fr(c['lineDraw']) - 0.02, 0.05)
     for k in range(9):
         place(fx, tick(2200 + 200 * (k % 3), 0.04, 0.004, 0.5), fr(c['gridDraw']) + k * 0.035, 0.05, pan=(k - 4) / 5)
@@ -604,12 +607,12 @@ def build_sfx():
         place(fx, blip(f0), fr(c['lockup'] + 22 + i * 5 + 3), 0.035, pan=(i - 2) / 6)
     for i, f in enumerate(CUES['rain']):
         r = np.random.default_rng(100 + i)
-        place(fx, tock(1000 + r.random() * 900, 0.1, 0.02 + r.random() * 0.02, 0.25), fr(f), 0.09 + 0.08 * (i / len(CUES['rain'])), pan=r.random() * 1.6 - 0.8)
+        place(fx, tock(1000 + r.random() * 900, 0.1, 0.02 + r.random() * 0.02, 0.25), fr(f), 0.09 + 0.08 * (i / len(CUES['rain'])), pan=0.75 * CUES['rainPan'][i] + (r.random() - 0.5) * 0.1)
     place(fx, riser(1.9, 200, 6000, True, 53), fr(c['yourWeek']) + 0.1, 0.20)
     place(fx, sub_boom(1.6, 92.5, 46.25, 0.12), fr(c['doesntFit']), 0.55)  # Gb2 -> Gb1
     place(fx, clap(0.5), fr(c['doesntFit']), 0.35)
     place(fx, filt(noise(0.6), sos_bp(200, 3000)) * expdec(0.6, 0.12), fr(c['doesntFit']), 0.20)
-    place(fx, riser(1.2, 400, 9000, True, 60), fr(c['doesntFit']) + 0.25, 0.14)
+    place(fx, riser(1.2, 400, 9000, True, 61), fr(c['doesntFit']) + 0.25, 0.14)  # glides to Db
     place(fx, reverse_suck(0.3), fr(c['implodeStart']), 0.55)
 
     # Act 2 — drop 1 on silence: flood + mark snaps + wordmark + fly into the app
@@ -621,7 +624,7 @@ def build_sfx():
     # the wordmark tucks back behind the mark (fastest just before the fly)
     place_at_peak(fx, whoosh(0.32, 2800, 700, 300, 0.8, 0.4), 0.8, fr(c['flyIn']) - 2 / FPS, 0.09)
     for i, at in enumerate(s['holdBeats']):  # the dot keeps the clock through the lockup hold
-        place(fx, tick(3000 if i % 2 == 0 else 2250, 0.08, 0.008, 0.8), fr(at), 0.16, pan=0.15 if i % 2 else -0.15)
+        place(fx, tick(TICK if i % 2 == 0 else TOCK, 0.08, 0.008, 0.8), fr(at), 0.22 if i == 1 else 0.16, pan=0.15 if i % 2 else -0.15)
     place_at_peak(fx, whoosh(0.6, 250, 1800, 400, 0.6, 1.0), 0.6, fr(pk['fly']), 0.40)
 
     # Act 3 — week loads, clashes, zoom, typing, click, flood
@@ -650,10 +653,14 @@ def build_sfx():
     place(fx, sub_boom(2.4, 69.3, 34.65, 0.12), fr(c['drop2']), 0.5)  # Db2 -> Db1
     place(fx, whoosh(0.4, 3000, 400, 150, 0.1, 0.4), fr(c['drop2']), 0.22)
     root_hz = {8: 69.3, 9: 65.4}  # Db, Ab/C — tune the heavy landings to the chord
+    last_heavy = None
     for i, l in enumerate(CUES['landings']):
         r = np.random.default_rng(300 + i)
         tl = fr(l['f'])
+        if l['heavy'] and l['f'] == last_heavy:
+            continue  # two blocks landing on one frame get one thud
         if l['heavy']:
+            last_heavy = l['f']
             rh = root_hz[8 if tl < bar(9) else 9]
             place(fx, tock(600 + r.random() * 200, 0.2, 0.05, 1.0), tl, 0.26, pan=r.random() - 0.5)
             place(fx, sub_boom(1.2, rh, rh / 2), tl, 0.14)
@@ -719,6 +726,7 @@ def build_sfx():
     place(fx, whoosh(0.4, 300, 2500, 800, 0.8, 0.8), fr(s['wordsIn']), 0.12)
     place(fx, snap(0.8, 1.0, mtof(32)), fr(s['fitsSnap']), 0.55)  # the tonic
     place(fx, sub_boom(3.0, 103.8, 51.9, 0.07), fr(s['fitsSnap']), 0.35)  # Ab2 -> Ab1, on pitch before the bass
+    place(fx, tick(TICK, 0.06, 0.006, 0.6), fr(s['periodLand']), 0.16, pan=0.15)  # the dot lands as the period
     # the ink strike: two felt-marker strokes, left then right, then the lines swell into blocks
     place(fx, marker(0.26), fr(s['strikeA']), 0.20, pan=-0.3)
     place(fx, marker(0.22), fr(s['strikeB']), 0.21, pan=0.3)
@@ -728,8 +736,10 @@ def build_sfx():
     place_at_peak(fx, whoosh(0.55, 500, 3500, 1200, 0.35, 0.6), 0.35, fr(pk['lockup2']), 0.16)
     # bookend: the film ends on the tick-tock it opened with (outside the master fade, see main)
     end = buf()
-    place(end, tick(3000, 0.06, 0.006, 0.6), fr(s['finalBlink']), 0.24)
-    place(end, tick(2250, 0.06, 0.006, 0.6), fr(s['finalTock']), 0.22)
+    place(end, tick(TICK, 0.06, 0.006, 0.6), fr(s['finalBlink']), 0.24)
+    place(end, tick(TOCK, 0.06, 0.006, 0.6), fr(s['finalTock']), 0.22)
+    # the lockup tucks away on the tock
+    place(fx, whoosh(0.3, 2600, 800, 300, 0.2, 0.4), fr(s['finalTock']), 0.07)
     return fx, end
 
 

@@ -137,6 +137,8 @@ export const Act2Mark: React.FC = () => {
     A.w = mid - g / 2 - A.x;
     B.x = mid + g / 2;
     B.w = bR - B.x;
+    const aBot = A.y + A.h;
+    B.h = mix(B.h, aBot - B.y, join); // and their bottoms meet, so the window never has an L-step
   }
   const U = lerpR(markR, winR, fly);
   // pieces are drawn at a fixed layout size and scaled by transform: kk is the lockup's screen
@@ -206,7 +208,7 @@ export const Act2Mark: React.FC = () => {
 
       {/* type, in lockup space: the dolly is a transform on this layer, the layout never moves */}
       {f >= L(CUE.lockup) && wordOut < 1 && (
-        <AbsoluteFill style={{ transform: `scale(${dolly})`, transformOrigin: '960px 540px', willChange: 'transform' }}>
+        <AbsoluteFill style={{ transform: `scale(${dolly})`, transformOrigin: '960px 540px' }}>
           {/* wordmark: slides out from behind the mark and back in; the clip follows the live mark edge */}
           {(() => {
             const finalLeft = lockX + M1 + gap;

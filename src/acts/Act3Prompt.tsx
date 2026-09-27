@@ -111,7 +111,9 @@ export const Act3Prompt: React.FC = () => {
   // command bar lifts off it toward the lens and floats to frame centre; then a macro onto send.
   const z1 = prog(f, L(CUE.zoomBar), L(CUE.zoomBar) + 54, E.cam);
   const z2 = prog(f, L(CUE.typeEnd) - 4, L(CUE.click) - 2, E.inOut);
-  const typingPush = tw(f, L(CUE.typeStart), L(CUE.typeEnd), 0, 0.1, E.smooth);
+  const typingPush = tw(f, L(CUE.typeStart), L(CUE.typeEnd), 0, 0.16, E.smooth);
+  // while typing, the defocused app keeps drifting under the bar (parallax), never a locked-off frame
+  const typeT = prog(f, L(CUE.typeStart) - 10, L(CUE.click), E.linear);
   const breathe = mix(1, 1.02, prog(f, 0, 40, E.smooth));
   // app layer
   const SA = mix(mix(V.s * breathe, 1.6, z1), 1.78, z2);
@@ -132,7 +134,7 @@ export const Act3Prompt: React.FC = () => {
   const bx = bScreen.x - barFocusApp.x * SB;
   const by = bScreen.y - barFocusApp.y * SB;
   const lift = z1;
-  const appDim = mix(0, 0.18, z1);
+  const appDim = mix(0, 0.1, z1);
 
   // the week has loaded while the app flew in (Act 2 shows the same cascade)
   const events = weekLoad(ACT.prompt.from + f);
@@ -178,25 +180,27 @@ export const Act3Prompt: React.FC = () => {
       {/* the soft glow, pre-dithered (a CSS gradient this subtle bands into rings) */}
       <Img src={staticFile('fx/glow-ink.png')} style={{ position: 'absolute', left: 0, top: 0, width: 1920, height: 1080 }} />
       {/* app: racks out of focus as the bar lifts (cross-faded, so the blur never snaps) */}
-      <RackFocus
-        t={z1}
-        blur={10}
-        render={() => (
-          <div
-            style={{
-              position: 'absolute',
-              left: 0,
-              top: 0,
-              width: APP.W,
-              height: APP.H,
-              transform: `translate(${tx}px, ${ty}px) scale(${SA})`,
-              transformOrigin: '0 0',
-            }}
-          >
-            <CalendarApp events={events} nowO={1} labelO={prog(f, 10, 24, E.out)} lineT={nowT} hideBar clashes={12} clashO={prog(f, 6, 20, E.out)} shadow={false} />
-          </div>
-        )}
-      />
+      <div style={{ position: 'absolute', inset: 0, transform: `translateX(${-16 * typeT}px) scale(${1 + 0.025 * typeT})`, transformOrigin: '960px 590px' }}>
+        <RackFocus
+          t={z1}
+          blur={10}
+          render={() => (
+            <div
+              style={{
+                position: 'absolute',
+                left: 0,
+                top: 0,
+                width: APP.W,
+                height: APP.H,
+                transform: `translate(${tx}px, ${ty}px) scale(${SA})`,
+                transformOrigin: '0 0',
+              }}
+            >
+              <CalendarApp events={events} nowO={1} labelO={prog(f, 10, 24, E.out)} lineT={nowT} hideBar clashes={12} clashO={prog(f, 6, 20, E.out)} shadow={false} />
+            </div>
+          )}
+        />
+      </div>
       <AbsoluteFill style={{ background: C.ink, opacity: appDim }} />
       {/* command bar, always sharp */}
       <div

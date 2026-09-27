@@ -64,7 +64,12 @@ const PLANS: Plan[] = (() => {
 // the camera straightens with a long settle that is still creeping when the features act takes over
 export const STRAIGHTEN = { from: CUE.straighten - ACT.plan.from - 20, to: ACT.plan.dur };
 export const STRAIGHTEN_EASE = Easing.bezier(0.4, 0, 0.1, 1);
-export const LANDINGS = PLANS.filter((p) => p.a).map((p) => ({ f: p.t2 + ACT.plan.from, heavy: !p.b || p.a?.kind === 'focus' }));
+// heavy landings (tock + tuned sub) only for ink focus blocks that land in shot; newcomers that
+// land out of frame (the gyms, Friday's deck) stay light
+const OFFSCREEN = ['tu-gym', 'th-gym', 'fr-deck'];
+export const LANDINGS = PLANS.filter((p) => p.a).map((p) => ({ f: p.t2 + ACT.plan.from, heavy: p.a?.kind === 'focus' && !OFFSCREEN.includes(p.id) }));
+// frames at which each clash is resolved (its block lands elsewhere or leaves the week)
+const CLEAR = PLANS.filter((p) => p.b && (p.b.lanes ?? 1) > 1).map((p) => (p.a ? p.t2 : p.t1 + 30));
 
 const lerpRect = (a: Rect, b: Rect, t: number): Rect => ({ x: mix(a.x, b.x, t), y: mix(a.y, b.y, t), w: mix(a.w, b.w, t), h: mix(a.h, b.h, t) });
 
@@ -74,6 +79,10 @@ export const Act4Plan: React.FC = () => {
   // --- red field collapses into the now dot (screen center) --------------------------
   const shut = prog(f, -1, 15, Easing.bezier(0.2, 0.7, 0.2, 1)); // already moving on the drop frame
   const retract = prog(f, 13, 26, E.inOut);
+
+  // the clash chip counts the fitting down, on the landings (whole frames, so blur sub-samples agree)
+  const fd = Math.round(f);
+  const clashesLeft = Math.max(1, Math.ceil(12 * (1 - CLEAR.filter((t) => fd >= t).length / Math.max(1, CLEAR.length))));
 
   // --- camera -----------------------------------------------------------------------
   // the orbit is still settling while the straighten starts from rest: one continuous move, no stall
@@ -180,7 +189,7 @@ export const Act4Plan: React.FC = () => {
         <CalendarApp
           events={[...blocks].sort((a, b) => (a.s.z ?? 0) - (b.s.z ?? 0)).map((b) => ({ ev: b.ev, s: b.s, key: b.key }))}
           gridChildren={shadows}
-          clashes={12}
+          clashes={clashesLeft}
           clashO={1}
           resolved={resolved}
           status={done}

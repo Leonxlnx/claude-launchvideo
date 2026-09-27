@@ -29,7 +29,7 @@ export const RackFocus: React.FC<{
         </div>
       )}
       {t > 0.001 && (
-        <div style={{ ...box, filter: `blur(${blur}px)`, opacity: t }}>
+        <div style={{ ...box, filter: `blur(${blur}px)`, opacity: Math.min(1, t * 1.8) }}>
           <div style={inner}>{render()}</div>
         </div>
       )}

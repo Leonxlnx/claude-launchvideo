@@ -492,7 +492,7 @@ const TopBar: React.FC<{ clashes?: number; clashO?: number; resolved?: number }>
         ) : (
           <div style={{ width: 7, height: 7, borderRadius: 4, background: C.red }} />
         )}
-        {resolved > 0.5 ? 'No clashes' : `${clashes} clashes`}
+        <span style={{ fontVariantNumeric: 'tabular-nums' }}>{resolved > 0.5 ? 'No clashes' : `${clashes} ${clashes === 1 ? 'clash' : 'clashes'}`}</span>
       </div>
     )}
     <div style={{ flex: 1 }} />

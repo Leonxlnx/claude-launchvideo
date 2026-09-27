@@ -12,7 +12,7 @@ import { HOLD_BEATS } from '../src/acts/Act2Mark';
 import { LANDINGS, STRAIGHTEN, STRAIGHTEN_EASE } from '../src/acts/Act4Plan';
 import { BEFORE } from '../src/app/data';
 import { FEAT_CUES as FC } from '../src/acts/Act5Features';
-import { HOP, MORPH, PULL_EASE, PULL_END, QUILT_TILES, SHUT_AT, SHUT_LEN, STRIKE, TILE_SPR } from '../src/acts/Act6End';
+import { HOP, MORPH, PULL_EASE, PULL_END, QUILT_TILES, SHUT_AT, SHUT_LEN, STRIKE, TILE_SPR, WORDS_LEAD } from '../src/acts/Act6End';
 import { E } from '../src/lib/anim';
 
 type Ease = (t: number) => number;
@@ -56,6 +56,8 @@ const cues = {
   acts: ACT,
   cue: CUE,
   rain: RAIN.map((b) => b.land).sort((a, b) => a - b),
+  // each landing panned to the day column it lands in (same order as `rain`)
+  rainPan: [...RAIN].sort((a, b) => a.land - b.land).map((b) => +((b.day * (1920 / 7) + 137 - 960) / 960).toFixed(2)),
   keys: KEY_FRAMES,
   keyWordStart: wordStarts,
   keySpace: spaces,
@@ -102,7 +104,8 @@ const cues = {
     f3Late: feat + FC.f3Late,
     f3LateSettle: feat + FC.f3LateSettle,
     f3ShiftSettle: feat + FC.f3ShiftSettle,
-    wordsIn: CUE.fits - 22,
+    wordsIn: CUE.fits - WORDS_LEAD,
+    periodLand: endFrom + HOP.to, // the now dot lands as the period, just after the words lock
     dotHop: endFrom + HOP.from + 1, // first frame the dot visibly leaves the line
     quiltShut: endFrom + SHUT_AT + SHUT_LEN, // the gutters close with velocity: contact frame
     strikeA: endFrom + STRIKE.a + 2,

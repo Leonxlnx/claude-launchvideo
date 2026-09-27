@@ -466,7 +466,7 @@ export const Act5Features: React.FC = () => {
   const invY = (hitT < 0 ? mix(START.y, CONTACT.y, fall) : mix(CONTACT.y, REST.y, repel)) + 110 * away;
   const invZ = (hitT < 0 ? mix(560, 30, fall) : 30 + 110 * Math.exp(-hitT / 7) * Math.abs(Math.sin(hitT / 3.3))) + 40 * away;
   const invRot = hitT >= 0 ? 3.5 * Math.exp(-hitT / 7) * Math.sin(hitT / 2.2) : 0;
-  const invO = prog(f, F2 + 16, F2 + 24);
+  const invO = prog(f, F2 + 16, F2 + 30, E.smooth);
   const showInv = f >= F2 + 16 && f < EXIT[1]; // off the frame's right edge well before it unmounts
   const zs = Math.min(1, invZ / 300);
   // the reply rolls in like the reel: pending rolls up out of the pill as it inks in, the reply rolls

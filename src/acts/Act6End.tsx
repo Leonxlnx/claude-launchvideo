@@ -57,8 +57,9 @@ const TILES: Tile[] = (() => {
     for (let i = 0; i < COLS; i++) {
       const di = i - (COLS - 1) / 2;
       const dj = j - (ROWS - 1) / 2;
-      // the real app sits in the centre tile: same card as its neighbours, no random blocks
-      out.push({ cx: di * PITCH.x, cy: dj * PITCH.y, rects: di === 0 && dj === 0 ? [] : makeWeek(j * COLS + i) });
+      // the centre tile (our week) gets a quilt week too: the app's own events fade out over it
+      // before the gutters close, so the stripes run unbroken past the dot
+      out.push({ cx: di * PITCH.x, cy: dj * PITCH.y, rects: makeWeek(di === 0 && dj === 0 ? ROWS * COLS : j * COLS + i) });
     }
   return out;
 })();
@@ -150,8 +151,11 @@ const ASM = L(CUE.lockupEnd);
 export const STRIKE = { a: ASM - 16, b: ASM - 10 };
 export const MORPH = { from: ASM + 10, to: ASM + 30 }; // lands on the beat after the strike
 export const MORPH_EASE = Easing.bezier(0.55, 0, 0.9, 0.55); // accelerates in, arrives with velocity
-export const HOP = { from: L(CUE.fits) - 30, to: L(CUE.fits) };
-const HOP_LAUNCH = Easing.bezier(0.35, 0, 0.75, 1);
+// "fits" locks exactly on the snap (its spring reaches rest WORDS_LEAD frames after it starts);
+// the now dot is still high on its arc then, and lands as the period just after, on its own tick
+export const WORDS_LEAD = 19;
+export const HOP = { from: L(CUE.fits) - 24, to: L(CUE.fits) + 6 };
+const HOP_LAUNCH = Easing.bezier(0.35, 0, 0.7, 0.85); // eases off the line, lands with a little speed
 const HOP_EASE = Easing.bezier(0.45, 0, 0.25, 1); // dot radius during the hop
 export const PULL_END = L(CUE.converge) + 60;
 const PERSP = 2400;
@@ -209,12 +213,11 @@ export const Act6End: React.FC = () => {
   const lx = 960 - lineW / 2;
   const baseY = 540 + SIZE * 0.34;
   const meetAt = L(CUE.fits);
-  const sl = spr(f, meetAt - 22, { damping: 20, stiffness: 170, mass: 0.9 });
+  const sl = spr(f, meetAt - WORDS_LEAD, { damping: 20, stiffness: 170, mass: 0.9 });
   const w1x = Math.min(0, mix(-m1.width - 260, 0, sl));
   const w2x = Math.max(0, mix(1920 - lx + 120, 0, sl));
-  const wordsO = prog(f, meetAt - 22, meetAt - 12);
-  const tp = (f - meetAt) / 14;
-  const punch = tp > 0 && tp < 1 ? 1 + 0.018 * Math.sin(tp * Math.PI) : 1;
+  const wordsO = prog(f, meetAt - WORDS_LEAD, meetAt - WORDS_LEAD + 10);
+  const punch = 1 + 0.018 * hitPulse(f - meetAt, 1, 4);
 
   // the words become blocks, the blocks become the mark
   const asm = L(CUE.lockupEnd);
@@ -274,8 +277,12 @@ export const Act6End: React.FC = () => {
   // bookend: the dot ends the film with the tick-tock it started it with
   const blink = 1 + 0.1 * hitPulse(f - final) + 0.08 * hitPulse(f - final - 30);
   // bookend: on the tock the lockup steps away and the dot returns to where the film began
-  const bye = prog(f, final + 30, final + 36, E.in);
-  const home = prog(f, final + 30, final + 56, E.inOut);
+  // on the tock the lockup leaves the way it arrived: the wordmark tucks back behind the mark (moving
+  // on the tock), the blocks fold into the dot, and the dot returns to the centre, where the film began
+  const tuck = prog(f, final + 30, final + 44, Easing.bezier(0.3, 0.6, 0.4, 1));
+  const urlOut = prog(f, final + 22, final + 32, E.smooth);
+  const fold = prog(f, final + 36, final + 48, E.in);
+  const home = prog(f, final + 42, final + 64, E.inOut);
   // before that it is still the calendar's now dot: it never shrinks with the pull back, and it
   // hops across to become the period exactly as "fits" locks
   const nowP = project(f, NOW_PT);
@@ -298,12 +305,13 @@ export const Act6End: React.FC = () => {
     y: mix(mix(period.y, markDot.y, dmorph), 540, home),
     r: mix(mix(period.r, markDot.r, dmorph), 14, home) * blink,
   };
-  const wordIn = prog(f, asm + 50, asm + 86, E.out);
-  const urlIn = prog(f, asm + 78, asm + 104, E.out);
+  const wordIn = prog(f, asm + 50, asm + 86, E.out) * (1 - tuck);
+  const urlIn = prog(f, asm + 64, asm + 90, E.out) * (1 - urlOut);
   const endPush = mix(1, 1.07, prog(f, asm + 60, ACT.end.dur, E.smooth));
 
   const textO = 1 - prog(f, 20, 70, E.smooth);
-  const events = FINAL.map((ev) => ({ ev, s: { rect: evRect(ev), textO } }));
+  const evO = 1 - prog(f, SHUT_AT - 16, SHUT_AT, E.smooth);
+  const events = FINAL.map((ev) => ({ ev, s: { rect: evRect(ev), textO, opacity: evO } }));
   const world = () => (
     <div
       style={{
@@ -331,7 +339,7 @@ export const Act6End: React.FC = () => {
       <AbsoluteFill style={{ background: '#fff', opacity: rack * 0.66 * (1 - quiltGone) }} />
 
       {/* Everything fits. */}
-      <div style={{ position: 'absolute', left: 0, top: 0, width: 1920, height: 1080, transform: `scale(${k})`, transformOrigin: '960px 540px', willChange: 'transform' }}>
+      <div style={{ position: 'absolute', left: 0, top: 0, width: 1920, height: 1080, transform: `scale(${k})`, transformOrigin: '960px 540px' }}>
         {[
           { t: 'Everything', x: lx + w1x, sw: swellA },
           { t: 'fits', x: lx + m1.width + space + w2x, sw: swellB },
@@ -358,7 +366,7 @@ export const Act6End: React.FC = () => {
         ))}
       </div>
 
-      <AbsoluteFill style={{ transform: `scale(${endPush})`, transformOrigin: '960px 520px', willChange: 'transform' }}>
+      <AbsoluteFill style={{ transform: `scale(${endPush})`, transformOrigin: '960px 520px' }}>
         {/* wordmark, revealed from behind the mark's live edge */}
         {wordIn > 0 &&
           (() => {
@@ -374,7 +382,6 @@ export const Act6End: React.FC = () => {
                   height: WORD.size * 1.25,
                   width: Math.max(0, right - cl),
                   overflow: 'hidden',
-                  opacity: 1 - bye,
                 }}
               >
                 <span
@@ -403,9 +410,12 @@ export const Act6End: React.FC = () => {
           })()}
         {/* the two word-blocks → the mark's tall block and square */}
         {fill > 0 &&
-          [A, B].map((r, i) => {
+          [A, B].map((r0, i) => {
+            // at the very end the blocks fold into the dot
+            const g = 1 - fold;
+            const r = fold > 0 ? { x: dot.x + (r0.x - dot.x) * g, y: dot.y + (r0.y - dot.y) * g, w: r0.w * g, h: r0.h * g } : r0;
             const w = (i === 0 ? fillA : fillB) * r.w;
-            if (w < lineH || bye >= 1) return null;
+            if (w < Math.min(lineH, r0.w * g) || fold >= 1) return null;
             return (
               <div
                 key={i}
@@ -417,7 +427,6 @@ export const Act6End: React.FC = () => {
                   height: r.h,
                   borderRadius: Math.min(rad, w / 2, r.h / 2),
                   background: C.ink,
-                  opacity: 1 - bye,
                 }}
               />
             );
@@ -434,7 +443,7 @@ export const Act6End: React.FC = () => {
             fontWeight: 500,
             letterSpacing: '-0.02em',
             color: C.mute2,
-            opacity: urlIn * (1 - bye),
+            opacity: urlIn,
             transform: `translateY(${(1 - urlIn) * 14}px)`,
             filter: `blur(${(1 - urlIn) * 6}px)`,
           }}
