@@ -18,6 +18,7 @@ const F1 = L(CUE.feat1); // 0
 const F2 = L(CUE.feat2); // 120
 const F3 = L(CUE.feat3); // 240
 const END = ACT.feat.dur; // 360 (= Act 6 f0)
+const LAST = END - 1; // the close lands here, so the act's last frame is exactly Act 6's first
 
 export const A5 = {
   SPLIT: Easing.bezier(0.33, 0, 0.1, 1),
@@ -81,7 +82,7 @@ export const FEAT_CUES = {
   f3Late: hitOf(LATE_AT, A5.CHECK), // "+30 min" (clap)
   f3LateSettle: F3 + 68, // review end settles at 14:30
   f3ShiftSettle: F3 + 75, // the chain lands (kick)
-  close: peakOf(A5.CLOSE_AT, END, A5.CLOSE),
+  close: peakOf(A5.CLOSE_AT, LAST, A5.CLOSE),
 };
 
 // ---- geometry ----------------------------------------------------------------------------------
@@ -216,7 +217,7 @@ export const Act5Features: React.FC = () => {
   const split = prog(f, 0, 42, A5.SPLIT);
   const wAB = prog(f, F2 - 16, F2 + 12, A5.WHIP);
   const wBC = prog(f, F3 - 16, F3 + 12, A5.WHIP);
-  const close = prog(f, A5.CLOSE_AT, END, A5.CLOSE);
+  const close = prog(f, A5.CLOSE_AT, LAST, A5.CLOSE);
   const cam = lc(lc(lc(lc(full(SHOT.A), shot(SHOT.A), split), shot(SHOT.B), wAB), shot(SHOT.C), wBC), full(SHOT.C), close);
   const dip = 1 - 0.18 * Math.sin(Math.PI * wAB) ** 2; // zoom-out hop on the first whip
   const breath =
@@ -239,7 +240,7 @@ export const Act5Features: React.FC = () => {
   const on = split * (1 - close);
   const rad = APP.R * APP_VIEW.s * (1 - on);
   const bgO = 1 - prog(f, 0, 36, E.smooth);
-  const tileA = prog(f, 0, 10, E.linear) * (1 - prog(f, 348, END, E.smooth));
+  const tileA = prog(f, 0, 10, E.linear) * (1 - prog(f, 348, LAST, E.smooth));
   const isFrame = win.x <= 0 && win.y <= 0 && win.w >= 1920 && win.h >= 1080;
   const ins = (v: number) => `${Math.max(0, v).toFixed(3)}px`;
   const clip = `inset(${ins(win.y)} ${ins(1920 - win.x - win.w)} ${ins(1080 - win.y - win.h)} ${ins(win.x)} round ${ins(rad)})`;
@@ -518,7 +519,8 @@ export const Act5Features: React.FC = () => {
             transform: `translate(${cam.sx}px, ${cam.sy}px) perspective(${A5.PERSP}px) rotateY(${yaw}deg) ${
               Z === 1 ? `scale(${k})` : `scale3d(${k / Z}, ${k / Z}, ${1 / Z})`
             } translate(${-cam.ax * Z}px, ${-cam.ay * Z}px)`,
-            transformStyle: 'preserve-3d',
+            // from the close's velocity peak everything is coplanar again: render flat, the way Act 6 does
+            transformStyle: fd >= FEAT_CUES.close ? 'flat' : 'preserve-3d',
           }}
         >
           <div style={{ zoom: Z, width: APP.W, height: APP.H, transformStyle: 'preserve-3d' }}>
