@@ -78,7 +78,7 @@ const kindStyle = (kind: Ev['kind']): React.CSSProperties => {
   }
 };
 
-export const EventBlock: React.FC<{ ev: Ev; s: EvStyle; flat?: boolean; noLiftShadow?: boolean }> = ({ ev, s, flat, noLiftShadow }) => {
+export const EventBlock: React.FC<{ ev: Ev; s: EvStyle; flat?: boolean; noLiftShadow?: boolean; children?: React.ReactNode }> = ({ ev, s, flat, noLiftShadow, children }) => {
   const { rect } = s;
   const z = s.z ?? 0;
   const short = rect.h < 40;
@@ -152,6 +152,7 @@ export const EventBlock: React.FC<{ ev: Ev; s: EvStyle; flat?: boolean; noLiftSh
           </span>
         )}
       </div>
+      {children}
     </div>
   );
 };
@@ -645,7 +646,7 @@ const NowLabel: React.FC<{ o?: number; now?: number }> = ({ o = 1, now = NOW }) 
 // The app
 // ---------------------------------------------------------------------------
 export type AppProps = {
-  events: { ev: Ev; s: EvStyle; key?: string }[];
+  events: { ev: Ev; s: EvStyle; key?: string; extra?: React.ReactNode }[]; // extra: layers inside the block (ride its lift/scale/rotation)
   noLiftShadow?: boolean;
   prompt?: Token[];
   caret?: boolean;
@@ -729,8 +730,10 @@ export const CalendarApp: React.FC<AppProps> = ({
       <GridLines />
       <NowLine o={nowO} now={now} part="faint" t={lineT} />
       {gridChildren}
-      {events.map(({ ev, s, key }) => (
-        <EventBlock key={key ?? ev.id} ev={ev} s={s} flat={flat} noLiftShadow={noLiftShadow} />
+      {events.map(({ ev, s, key, extra }) => (
+        <EventBlock key={key ?? ev.id} ev={ev} s={s} flat={flat} noLiftShadow={noLiftShadow}>
+          {extra}
+        </EventBlock>
       ))}
       <NowLine o={nowO} now={now} t={lineT} dotO={nowO > 0 || lineT < 1 ? 1 : 0} />
     </div>
