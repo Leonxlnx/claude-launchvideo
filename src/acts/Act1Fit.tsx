@@ -1,5 +1,5 @@
 import React from 'react';
-import { AbsoluteFill, useCurrentFrame } from 'remotion';
+import { AbsoluteFill, Easing, useCurrentFrame } from 'remotion';
 import { C, FONT } from '../brand/tokens';
 import { E, mix, prog, tw } from '../lib/anim';
 import { Words } from '../fx/Words';
@@ -12,6 +12,7 @@ import { fmt, NOW } from '../app/data';
 // then everything implodes back into the dot.
 
 const { colW, hourH, nowY, now } = ACT1;
+const OPEN = Easing.bezier(0.25, 0.6, 0.2, 1); // fast pull-back off the disc, long settle
 const yOf = (h: number) => nowY + (h - now) * hourH;
 
 const Block: React.FC<{ b: RainBlock; f: number }> = ({ b, f }) => {
@@ -22,8 +23,9 @@ const Block: React.FC<{ b: RainBlock; f: number }> = ({ b, f }) => {
   const settle = t >= 0 ? Math.exp(-t / 5) * Math.sin(t / 2.2) * 10 : 0;
   const y0 = yOf(b.start);
   const y = mix(-260 - (y0 + 60), 0, fall) - settle;
-  const rot = (1 - fall) * b.rot;
-  const x = b.day * colW + 6 + b.jx * 0.25;
+  // piled blocks keep a little of their tilt and offset: nothing lines up any more
+  const rot = mix(b.rot * 0.22, b.rot, 1 - fall);
+  const x = b.day * colW + 6 + b.jx * 0.6;
   const h = b.dur * hourH - 6;
   // no titles peeking around the headline
   const underHeadline = x < 1320 && x + colW > 600 && y0 < 470 && y0 + h > 280;
@@ -118,8 +120,10 @@ export const Act1Fit: React.FC = () => {
   const worldScale = mix(1, 0.0, imp);
   const worldRot = mix(0, -14, imp);
 
-  // slow push-in over the whole act
-  const push = tw(f, 0, CUE.implodeStart, 1, 1.07, E.smooth);
+  // the film opens close on the now dot: a big red disc that contracts into the marker while
+  // the day draws out of it (the camera pulls back), then a slow push-in over the act
+  const open = tw(f, 0, CUE.lineDraw + 24, 9, 1, OPEN);
+  const push = tw(f, 0, CUE.implodeStart, 1, 1.07, E.smooth) * mix(1, 1.12, (open - 1) / 8);
 
   // dot
   // the dot is there from the first frame and ticks on every beat until the headline arrives
@@ -134,12 +138,13 @@ export const Act1Fit: React.FC = () => {
   const lineW = 1920 * lineP * (1 - lineRetract);
 
   // headline 2 slam
-  const slam = prog(f, CUE.doesntFit, CUE.doesntFit + 14, E.out);
+  const slam = prog(f, CUE.doesntFit - 1, CUE.doesntFit + 14, E.out); // first new picture on the hit frame
   const bigScale = mix(1.32, 1, slam) * tw(f, CUE.doesntFit, CUE.implodeStart, 1, 1.05, E.smooth);
   const line1Y = tw(f, CUE.doesntFit - 6, CUE.doesntFit + 16, 0, -40, E.out);
 
   // rain blur grows as the pile gets dense (depth of field behind the type)
-  const rainBlur = tw(f, CUE.rainStart, CUE.doesntFit + 20, 0, 3.5, E.smooth);
+  // the pile stays sharp and messy until the headline takes over, then drops into depth of field
+  const rainBlur = tw(f, CUE.doesntFit - 4, CUE.doesntFit + 18, 0, 3.5, E.smooth);
   const rainDim = tw(f, CUE.doesntFit, CUE.doesntFit + 20, 1, 0.55, E.smooth);
 
   return (
@@ -238,7 +243,7 @@ export const Act1Fit: React.FC = () => {
           height: 28,
           borderRadius: 14,
           background: C.red,
-          transform: `scale(${dotIn * mix(1, 1.25, imp)})`,
+          transform: `scale(${dotIn * open * mix(1, 1.25, imp)})`,
         }}
       />
     </AbsoluteFill>

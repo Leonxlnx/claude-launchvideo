@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { AbsoluteFill, Easing, useCurrentFrame } from 'remotion';
+import { AbsoluteFill, Easing, spring, useCurrentFrame } from 'remotion';
 import { measureTracked } from '../lib/measure';
 import { RackFocus } from '../fx/RackFocus';
 import { C, FONT } from '../brand/tokens';
@@ -65,7 +65,12 @@ const TILES: Tile[] = (() => {
 // along its ray from the centre and snaps into the grid, then its blocks pack themselves.
 export const TILE_SPR = { damping: 15, stiffness: 150, mass: 0.7 };
 export const tileDist = (t: Pick<Tile, 'cx' | 'cy'>) => Math.hypot(t.cx, t.cy) / PITCH.x;
-export const tileDelay = (t: Pick<Tile, 'cx' | 'cy'>) => 22 + tileDist(t) * 21;
+const TILE_HIT = (() => {
+  for (let k = 0; k < 90; k++) if (spring({ frame: k, fps: 60, config: TILE_SPR }) >= 1) return k;
+  return 15;
+})();
+// each card's snap (spring hit) lands on a 32nd note (3.75 frames; the act starts on a bar line)
+export const tileDelay = (t: Pick<Tile, 'cx' | 'cy'>) => Math.round((22 + tileDist(t) * 21 + TILE_HIT) / 3.75) * 3.75 - TILE_HIT;
 export const QUILT_TILES = TILES.filter((t) => t.cx !== 0 || t.cy !== 0).map((t) => ({ cx: t.cx, cy: t.cy, dist: tileDist(t), delay: tileDelay(t) }));
 
 // Once the wave is in, the gutters close: the quilt snaps shut into one continuous surface.
@@ -257,7 +262,9 @@ export const Act6End: React.FC = () => {
   const periodPos = { x: 960 + (px - 960) * k, y: 540 + (py - 540) * k };
   const markDot = { x: mx + MARK.D.cx * u, y: my + MARK.D.cy * u, r: MARK.D.r * u };
   const final = L(CUE.final);
-  const blink = f > final ? 1 + 0.16 * Math.sin(Math.min(1, (f - final) / 16) * Math.PI) : 1;
+  // bookend: the dot ends the film with the tick-tock it started it with
+  const tock = (at: number) => (f >= at && f < at + 14 ? Math.sin(((f - at) / 14) * Math.PI) : 0);
+  const blink = 1 + 0.26 * tock(final) + 0.18 * tock(final + 30);
   // before that it is still the calendar's now dot: it never shrinks with the pull back, and it
   // hops across to become the period exactly as "fits" locks
   const nowP = project(f, NOW_PT);
@@ -282,7 +289,7 @@ export const Act6End: React.FC = () => {
   };
   const wordIn = prog(f, asm + 50, asm + 86, E.out);
   const urlIn = prog(f, asm + 78, asm + 104, E.out);
-  const endPush = mix(1, 1.035, prog(f, asm + 60, ACT.end.dur, E.smooth));
+  const endPush = mix(1, 1.07, prog(f, asm + 60, ACT.end.dur, E.smooth));
 
   const textO = 1 - prog(f, 20, 70, E.smooth);
   const events = FINAL.map((ev) => ({ ev, s: { rect: evRect(ev), textO } }));

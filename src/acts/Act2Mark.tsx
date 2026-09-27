@@ -5,7 +5,7 @@ import { C, FONT } from '../brand/tokens';
 import { MARK } from '../brand/Mark';
 import { E, mix, prog, spr } from '../lib/anim';
 import { Words } from '../fx/Words';
-import { ACT, CUE } from '../timeline';
+import { ACT, b, CUE } from '../timeline';
 import { APP, CalendarApp, GRID, HOUR, COL } from '../app/CalendarApp';
 import { H0, NOW, TODAY } from '../app/data';
 
@@ -26,11 +26,14 @@ const DOT_APP = {
   y: (GRID.y + (NOW - H0) * HOUR) / APP.H,
 };
 
+// beats inside the lockup hold (act-local frames), shared with the soundtrack
+export const HOLD_BEATS = [b(4, 3), b(5), b(5, 1)].map((x) => x - ACT.mark.from);
+
 export const Act2Mark: React.FC = () => {
   const f = useCurrentFrame();
 
   // --- stage: ink flood from the dot -------------------------------------------------
-  const flood = prog(f, 0, 18, E.out);
+  const flood = prog(f, -1, 18, E.out); // already opening on the drop frame
   const floodR = mix(0, 1250, flood);
 
   // --- mark geometry ------------------------------------------------------------------
@@ -82,10 +85,12 @@ export const Act2Mark: React.FC = () => {
     y: U.y + mix(MARK.D.cy / 100, DOT_APP.y, dotFly) * U.h,
     r: mix(MARK.D.r * u, 6 * V.s, fly),
   };
+  // while the lockup holds, the dot keeps the film's clock: a small pulse on every beat
+  const pulse = HOLD_BEATS.reduce((m, at) => Math.max(m, f >= at && f < at + 12 ? Math.sin(((f - at) / 12) * Math.PI) : 0), 0);
   const dot = {
     x: mix(960, inMark.x, sd),
     y: mix(540, inMark.y, sd),
-    r: mix(17.5, inMark.r, sd),
+    r: mix(17.5, inMark.r, sd) * (1 + 0.14 * pulse),
   };
 
   // wordmark + descriptor

@@ -6,7 +6,8 @@ import { writeFileSync, mkdirSync } from 'node:fs';
 import { spring, SpringConfig } from 'remotion';
 import { ACT, CUE, FPS, TOTAL } from '../src/timeline';
 import { RAIN } from '../src/acts/act1-data';
-import { KEY_FRAMES, PROMPT } from '../src/acts/Act3Prompt';
+import { CLASH_AT, CLASH_DAYS, CLASH_STEP, KEY_FRAMES, PROMPT } from '../src/acts/Act3Prompt';
+import { HOLD_BEATS } from '../src/acts/Act2Mark';
 import { LANDINGS, STRAIGHTEN_LEN } from '../src/acts/Act4Plan';
 import { BEFORE } from '../src/app/data';
 import { HOP, MORPH, PULL_EASE, PULL_END, QUILT_TILES, SHUT_AT, SHUT_SPR, STRIKE, TILE_SPR } from '../src/acts/Act6End';
@@ -60,7 +61,7 @@ const cues = {
   keyWordStart: wordStarts,
   keySpace: spaces,
   cascade,
-  clashes: [0, 2, 4, 6, 8, 10, 12].map((k) => P + 34 + k),
+  clashes: CLASH_DAYS.map((d) => Math.round(P + CLASH_AT + d * CLASH_STEP)),
   landings: LANDINGS.sort((a, b) => a.f - b.f),
   // neighbouring weeks snapping into the quilt (the ones near enough to be seen)
   quilt: QUILT_TILES.filter((t) => t.dist < 3.6)
@@ -77,6 +78,9 @@ const cues = {
     inviteExit: feat + peak(F2 + 70, F2 + 96, E.inOut),
     back: feat + peak(ACT.feat.dur - 36, ACT.feat.dur, E.glide),
     pullBack: endFrom + peak(0, PULL_END, PULL_EASE),
+    lockup1: markFrom + peak(CUE.lockup - markFrom, CUE.lockup - markFrom + 34, E.inOut),
+    lockup2: endFrom + peak(asm + 38, asm + 74, E.inOut),
+    morph: endFrom + MORPH.to - 3, // the pieces accelerate into their landing
   },
   sfx: {
     markSnapA: hit(markFrom + 8, { damping: 17, stiffness: 230, mass: 0.8 }),
@@ -105,6 +109,8 @@ const cues = {
     markMorph: endFrom + MORPH.to, // the pieces land with velocity: impact frame
     lockup2: endFrom + asm + 56,
     finalBlink: CUE.final,
+    finalTock: CUE.final + 30,
+    holdBeats: HOLD_BEATS.map((x) => markFrom + x),
   },
 };
 mkdirSync('out', { recursive: true });

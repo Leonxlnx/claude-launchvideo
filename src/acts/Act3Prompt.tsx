@@ -99,6 +99,10 @@ const V = APP_VIEW;
 const focusApp = { x: BAR.x + BAR.w / 2, y: BAR.y + BAR.h / 2 };
 const sendApp = { x: SEND.x, y: SEND.y };
 
+export const CLASH_AT = 34; // act-local frame the first day's clashes flash
+export const CLASH_STEP = 2.5; // frames between days
+export const CLASH_DAYS = [...new Set(BEFORE.filter((e) => (e.lanes ?? 1) > 1).map((e) => e.day))].sort((a, b) => a - b);
+
 export const Act3Prompt: React.FC = () => {
   const f = useCurrentFrame();
 
@@ -138,8 +142,12 @@ export const Act3Prompt: React.FC = () => {
     return { ev, s: { rect: { ...r, y: r.y - (1 - sp) * 14 }, opacity: p, glow: 0 } };
   });
   // clashes flash once the week is in
-  const clashT = prog(f, 34, 46, E.out) * (1 - 0.5 * prog(f, 52, 70, E.smooth));
-  for (const e of events) if ((e.ev.lanes ?? 1) > 1) e.s.glow = clashT;
+  // clashes flash day by day (one conflict blip per day in the soundtrack)
+  for (const e of events)
+    if ((e.ev.lanes ?? 1) > 1) {
+      const at = CLASH_AT + e.ev.day * CLASH_STEP;
+      e.s.glow = prog(f, at, at + 10, E.out) * (1 - 0.5 * prog(f, 52, 70, E.smooth));
+    }
   const nowT = prog(f, 4, 34, E.out);
 
   // typing. Keystrokes, the caret blink and ink ages are discrete states: they are evaluated on the

@@ -40,21 +40,24 @@ const schedule = (k: number) => {
   return Math.round(CUE.rainStart + eased * (CUE.implodeStart - 2 - CUE.rainStart));
 };
 
-export const RAIN: RainBlock[] = Array.from({ length: RAIN_N }, (_, i) => {
+// Blocks crowd the hours around "now", and the later ones land on top of slots that are already
+// taken, so the week visibly piles up (overlapping, askew) before the headline says so.
+export const RAIN: RainBlock[] = [];
+for (let i = 0; i < RAIN_N; i++) {
   const r = (n: number) => rand(`rain-${i}-${n}`);
-  const day = Math.floor(r(1) * 7);
-  const start = 5.5 + Math.floor(r(2) * 15) * 0.5; // 05:30 .. 12:30
-  const dur = [0.5, 0.75, 1, 1, 1.5][Math.floor(r(3) * 5)];
-  return {
+  const onTop = i > 22 && r(9) < 0.7 ? RAIN[Math.floor(r(10) * i)] : undefined;
+  const day = onTop ? onTop.day : Math.floor(r(1) * 7);
+  const start = onTop ? onTop.start + (r(11) < 0.5 ? 0 : 0.5) : 7 + Math.floor(r(2) * 11) * 0.5; // 07:00 .. 12:00
+  RAIN.push({
     i,
     title: TITLES[Math.floor(r(4) * TITLES.length)],
     day,
     start,
-    dur,
+    dur: [0.5, 0.75, 1, 1, 1.5][Math.floor(r(3) * 5)],
     land: schedule(i),
-    ink: r(5) < 0.08,
-    outline: r(6) < 0.14,
+    ink: r(5) < 0.16,
+    outline: r(6) < 0.12,
     jx: (r(7) - 0.5) * 70,
     rot: (r(8) - 0.5) * 16,
-  };
-});
+  });
+}

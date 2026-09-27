@@ -5,7 +5,7 @@ export const FPS = 60;
 export const W = 1920;
 export const H = 1080;
 
-const b = (bar: number, beat = 0, sub = 0) => Math.round(((bar - 1) * 4 + beat) * 30 + sub * 7.5);
+export const b = (bar: number, beat = 0, sub = 0) => Math.round(((bar - 1) * 4 + beat) * 30 + sub * 7.5);
 
 // Acts (absolute frames)
 export const ACT = {

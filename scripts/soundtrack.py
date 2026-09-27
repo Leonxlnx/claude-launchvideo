@@ -201,15 +201,15 @@ def pingpong(x, delay_s, fb=0.35, mix=0.3, lp=4000):
 # ---------------------------------------------------------------------------------------
 def kick(d=0.9, hard=1.0):
     t = tt(d)
-    f = 48 + 110 * np.exp(-t / 0.035) + 40 * np.exp(-t / 0.006)
+    f = mtof(32) + 110 * np.exp(-t / 0.035) + 40 * np.exp(-t / 0.006)  # settles on Ab1: in key with every bass root
     body = sine(f, d) * np.exp(-t / (0.26 * hard + 0.05))
     click = filt(noise(d), sos_hp(2500)) * np.exp(-t / 0.0025) * 0.35
     return sat(body * 1.1 + click, 1.8) * 0.9
 
 
-def sub_boom(d=2.5, f0=52, f1=36):
+def sub_boom(d=2.5, f0=52, f1=36, glide=0.4):
     t = tt(d)
-    f = f1 + (f0 - f1) * np.exp(-t / 0.4)
+    f = f1 + (f0 - f1) * np.exp(-t / glide)
     x = sine(f, d) * np.exp(-t / 0.9)
     x += sine(f * 2, d) * np.exp(-t / 0.25) * 0.25
     x = sat(x, 1.4)
@@ -398,7 +398,7 @@ CH = {
     'Eb': dict(pad=[51, 55, 58, 63, 65], bass=39, arp=[63, 67, 70, 75]),
     'Ab': dict(pad=[44, 51, 56, 60, 63, 70], bass=32, arp=[68, 72, 75, 80]),
     'Fm': dict(pad=[41, 48, 53, 56, 60], bass=29, arp=[65, 68, 72, 77]),
-    'Gb': dict(pad=[42, 49, 53, 54, 58], bass=30, arp=[66, 70, 73, 78]),
+    'Gb': dict(pad=[42, 49, 54, 58, 65], bass=30, arp=[66, 70, 73, 78]),
 }
 
 # chord per bar (bars 1..17)
@@ -447,9 +447,11 @@ def build_music():
             level, cut, d = 0.42, 2600, 2 * BAR + 2.2  # the tonic rings from "fits." and decays
         else:
             level, cut = 0.30, 2200
+        if b in (7, 14):
+            d = BAR + 0.08  # the V chord is gone by the downbeat it resolves into
         notes = CH[name]['pad']
         for m in notes:
-            x = supersaw_note(m, d, voices=5, detune=0.11, cutoff=cut, a=0.12 if b != 4 else 0.02, r=1.5 if b == 15 else 0.9)
+            x = supersaw_note(m, d, voices=5, detune=0.11, cutoff=cut, a=0.12 if b != 4 else 0.02, r=1.5 if b == 15 else (0.3 if b in (7, 14) else 0.9))
             place(pad, x, start, gain=level / len(notes) * 2.2)
     pad = filt(pad, sos_hp(170, 2))
 
@@ -538,7 +540,9 @@ def build_music():
             gain, step = 0.05, 2
         elif b in (8, 9):
             gain, step = 0.13, 1
-        elif b in (13, 14):
+        elif b == 13:
+            gain, step = 0.05, 2  # room for the quilt cascade
+        elif b == 14:
             gain, step = 0.09, 1
         else:
             gain, step = 0.08, 2
@@ -560,6 +564,16 @@ def build_music():
     return dict(drums=drums, bass=bass, pad=pad, arp=arp, bells=bells, kicks=kicks)
 
 
+def marker(d=0.25):
+    """Felt marker drawn across paper: a band of noise that brightens as the stroke speeds up."""
+    t = tt(d)
+    u = t / d
+    x = np.stack([noise(d), noise(d)], axis=1)
+    y = sweep_filter(x, 1800 * (5200 / 1800) ** np.sqrt(u), 'band') * 2.4
+    env = np.minimum(1, t / 0.008) * (1 - u) ** 1.5 * (0.6 + 0.4 * np.sin(np.pi * np.minimum(1, u * 1.4)))
+    return y * env[:, None]
+
+
 def conflict_blip(d=0.08):
     t = tt(d)
     x = (np.sin(2 * np.pi * 392.0 * t) + np.sin(2 * np.pi * 415.3 * t)) * 0.5
@@ -571,6 +585,9 @@ def build_sfx():
     c, s, pk = C_, S_, PK
 
     # Act 1 — the clock: a soft tick-tock on every beat until the headline lands
+    place(fx, tick(3000, 0.08, 0.008, 0.8), 0.0, 0.12)
+    place(fx, sub_boom(0.6, 87.3, 43.65, 0.08), 0.0, 0.22)  # F2 -> F1 under the first tick (bar 1: Fm)
+    place(fx, whoosh(1.3, 2600, 900, 250, 0.12, 0.3, 0.08), 0.0, 0.07)  # the disc contracts
     for k in range(1, 8):
         place(fx, tick(3000 if k % 2 else 2250, 0.06, 0.006, 0.6), k * BEAT, 0.055 + 0.01 * (k % 2), pan=-0.15 if k % 2 else 0.15)
     place(fx, whoosh(0.5, 2000, 7000, 3000, 0.3, 0.5), fr(c['lineDraw']) - 0.02, 0.05)
@@ -584,18 +601,20 @@ def build_sfx():
         r = np.random.default_rng(100 + i)
         place(fx, tock(1000 + r.random() * 900, 0.1, 0.02 + r.random() * 0.02, 0.25), fr(f), 0.09 + 0.08 * (i / len(CUES['rain'])), pan=r.random() * 1.6 - 0.8)
     place(fx, riser(1.9, 200, 6000, True, 53), fr(c['yourWeek']) + 0.1, 0.20)
-    place(fx, sub_boom(1.6, 58, 38), fr(c['doesntFit']), 0.55)
+    place(fx, sub_boom(1.6, 92.5, 46.25, 0.12), fr(c['doesntFit']), 0.55)  # Gb2 -> Gb1
     place(fx, clap(0.5), fr(c['doesntFit']), 0.35)
     place(fx, filt(noise(0.6), sos_bp(200, 3000)) * expdec(0.6, 0.12), fr(c['doesntFit']), 0.20)
     place(fx, riser(1.2, 400, 9000, True, 60), fr(c['doesntFit']) + 0.25, 0.14)
     place(fx, reverse_suck(0.3), fr(c['implodeStart']), 0.55)
 
     # Act 2 — drop 1 on silence: flood + mark snaps + wordmark + fly into the app
-    place(fx, sub_boom(2.6, 60, 36), fr(c['drop1']), 0.75)
+    place(fx, sub_boom(2.6, 69.3, 34.65, 0.12), fr(c['drop1']), 0.75)  # Db2 -> Db1
     place(fx, whoosh(0.35, 150, 1400, 300, 0.2), fr(c['drop1']), 0.22)
     place(fx, snap(0.6, 0.8), fr(s['markSnapA']), 0.42, pan=-0.2)
     place(fx, snap(0.6, 1.0), fr(s['markSnapB']), 0.46, pan=0.2)
-    place(fx, whoosh(0.55, 500, 3500, 1200, 0.35, 0.6), fr(s['wordmark']) - 0.1, 0.12)
+    place_at_peak(fx, whoosh(0.55, 500, 3500, 1200, 0.35, 0.6), 0.35, fr(pk['lockup1']), 0.12)
+    for at in s['holdBeats']:  # the dot keeps the clock through the lockup hold
+        place(fx, tick(3000, 0.06, 0.006, 0.6), fr(at), 0.05)
     place_at_peak(fx, whoosh(0.75, 250, 1800, 400, 0.6, 1.0), 0.6, fr(pk['fly']), 0.40)
 
     # Act 3 — week loads, clashes, zoom, typing, click, flood
@@ -621,7 +640,7 @@ def build_sfx():
     place(fx, whoosh(0.3, 300, 5000, 2000, 0.9, 0.3), fr(s['flood']), 0.26)
 
     # Act 4 — drop 2: the fitting
-    place(fx, sub_boom(2.4, 62, 38), fr(c['drop2']), 0.5)
+    place(fx, sub_boom(2.4, 69.3, 34.65, 0.12), fr(c['drop2']), 0.5)  # Db2 -> Db1
     place(fx, whoosh(0.4, 3000, 400, 150, 0.1, 0.4), fr(c['drop2']), 0.22)
     root_hz = {8: 69.3, 9: 65.4}  # Db, Ab/C — tune the heavy landings to the chord
     for i, l in enumerate(CUES['landings']):
@@ -672,20 +691,29 @@ def build_sfx():
         m = ladder[min(len(ladder) - 1, int(round(g['dist'] * 2)) - 1)]
         pan = max(-0.7, min(0.7, 0.35 * g['x'] / g['n'] + (0.25 if i % 2 else -0.25)))
         fade = 1.0 - 0.45 * i / max(1, len(groups) - 1)
-        place(fx, tock(mtof(m) * 1.02, 0.1, 0.018, 0.15), fr(g['f']), 0.07 * fade * min(1.6, g['n'] ** 0.35), pan=pan)
-        place(fx, fm_bell(m, 0.6, 0.5, 2.0, 0.11), fr(g['f']), 0.035 * fade, pan=pan)
+        place(fx, tock(mtof(m), 0.1, 0.018, 0.15), fr(g['f']), 0.14 * fade * min(1.6, g['n'] ** 0.35), pan=pan)
+        place(fx, fm_bell(m, 0.6, 0.5, 2.0, 0.11), fr(g['f']), 0.06 * fade, pan=pan)
+    # the gutters close: the quilt snaps shut (bar 14, Eb)
+    place(fx, snap(0.5, 0.7), fr(s['quiltShut']), 0.28)
+    place(fx, tock(mtof(63), 0.3, 0.06, 1.0), fr(s['quiltShut']), 0.3)
+    place(fx, fm_bell(87, 1.2, 0.8, 2.0, 0.3), fr(s['quiltShut']), 0.05)
     rz = 3.2
     place(fx, riser(rz, 150, 7000, True, 51), fr(c['fits']) - 0.2 - rz, 0.16)
-    place(fx, blip(622.25, True, 0.12), fr(s['dotHop']), 0.10, pan=0.2)
+    place(fx, blip(1244.5, True, 0.14), fr(s['dotHop']), 0.22, pan=0.1)  # Eb6 -> Bb6, a free register
     place(fx, whoosh(0.4, 300, 2500, 800, 0.8, -0.8), fr(s['wordsIn']), 0.12)
     place(fx, whoosh(0.4, 300, 2500, 800, 0.8, 0.8), fr(s['wordsIn']), 0.12)
     place(fx, snap(0.8, 1.0), fr(s['fitsSnap']), 0.55)
-    place(fx, sub_boom(3.0, 103.8, 51.9), fr(s['fitsSnap']), 0.35)
-    place(fx, whoosh(0.2, 1200, 5200, 2500, 0.45, 0.6, 0.25), fr(s['wordsFill']) - 0.04, 0.07)
-    place(fx, tock(420, 0.3, 0.06, 1.0), fr(s['wordsFill']), 0.16)
-    place(fx, snap(0.6, 0.9), fr(s['markMorph']), 0.40)
-    place(fx, whoosh(0.55, 500, 3500, 1200, 0.35, 0.6), fr(s['lockup2']) - 0.1, 0.10)
-    place(fx, tick(2600, 0.2, 0.02, 0.8), fr(s['finalBlink']), 0.12)
+    place(fx, sub_boom(3.0, 103.8, 51.9, 0.07), fr(s['fitsSnap']), 0.35)  # Ab2 -> Ab1, on pitch before the bass
+    # the ink strike: two felt-marker strokes, left then right, then the lines swell into blocks
+    place(fx, marker(0.26), fr(s['strikeA']), 0.20, pan=-0.3)
+    place(fx, marker(0.22), fr(s['strikeB']), 0.21, pan=0.3)
+    place(fx, tock(420, 0.3, 0.06, 1.0), fr(s['wordsFill']), 0.12)
+    place_at_peak(fx, whoosh(0.35, 400, 2400, 600, 0.85, 0.4), 0.85, fr(s['markMorph']), 0.12)
+    place(fx, snap(0.6, 0.9), fr(s['markMorph']), 0.5)
+    place_at_peak(fx, whoosh(0.55, 500, 3500, 1200, 0.35, 0.6), 0.35, fr(pk['lockup2']), 0.16)
+    # bookend: the film ends on the tick-tock it opened with
+    place(fx, tick(3000, 0.06, 0.006, 0.6), fr(s['finalBlink']), 0.24)
+    place(fx, tick(2250, 0.06, 0.006, 0.6), fr(s['finalTock']), 0.2)
     return fx
 
 

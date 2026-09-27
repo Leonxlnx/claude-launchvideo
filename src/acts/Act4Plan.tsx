@@ -71,7 +71,7 @@ export const Act4Plan: React.FC = () => {
   const f = useCurrentFrame();
 
   // --- red field collapses into the now dot (screen center) --------------------------
-  const shut = prog(f, 0, 15, Easing.bezier(0.2, 0.7, 0.2, 1)); // opens right under the drop
+  const shut = prog(f, -1, 15, Easing.bezier(0.2, 0.7, 0.2, 1)); // already moving on the drop frame
   const retract = prog(f, 13, 26, E.inOut);
 
   // --- camera -----------------------------------------------------------------------
