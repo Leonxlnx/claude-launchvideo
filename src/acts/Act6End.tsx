@@ -84,11 +84,12 @@ const SHUT_EASE = Easing.bezier(0.55, 0, 0.9, 0.55);
 const Quilt: React.FC<{ f: number }> = ({ f }) => {
   const c = prog(f, SHUT_AT, SHUT_AT + SHUT_LEN, SHUT_EASE);
   const after = f - SHUT_AT - SHUT_LEN;
-  const shut = c + (after > 0 ? 0.04 * Math.exp(-after / 4) * Math.sin(after / 1.6) : 0);
+  const shut = c + (after > 0 && after < 40 ? 0.04 * Math.exp(-after / 4) * Math.sin(after / 1.6) : 0);
+  const open = Math.max(0, 1 - shut); // what is left of the gutters (never negative: SVG rejects it)
   // at g = 0 the day columns of neighbouring weeks sit exactly one day-gap apart (the white card
   // margins overlap), so the quilt reads as one continuous surface
   const g = mix(150, 0, shut);
-  const cardR = mix(30, 0, shut);
+  const cardR = 30 * open;
   // one SVG, in grid-space coordinates centered on the real week's grid
   const x0 = -((COLS - 1) / 2) * PITCH.x;
   const y0 = -((ROWS - 1) / 2) * PITCH.y;
@@ -115,8 +116,8 @@ const Quilt: React.FC<{ f: number }> = ({ f }) => {
         const cy = GRID.h / 2;
         return (
           <g key={ti} opacity={o} transform={`translate(${tx} ${ty}) rotate(${rot} ${cx} ${cy}) translate(${cx} ${cy}) scale(${sc}) translate(${-cx} ${-cy})`}>
-            {!centre && <rect x={-22} y={-4} width={GRID.w + 44} height={GRID.h + 44} rx={cardR} fill={`rgba(11,11,12,${0.05 * (1 - shut)})`} />}
-            <rect x={-22} y={-22} width={GRID.w + 44} height={GRID.h + 44} rx={cardR} fill="#fff" stroke={`rgba(11,11,12,${0.07 * (1 - shut)})`} strokeWidth={2} />
+            {!centre && <rect x={-22} y={-4} width={GRID.w + 44} height={GRID.h + 44} rx={cardR} fill={`rgba(11,11,12,${0.05 * open})`} />}
+            <rect x={-22} y={-22} width={GRID.w + 44} height={GRID.h + 44} rx={cardR} fill="#fff" stroke={`rgba(11,11,12,${0.07 * open})`} strokeWidth={2} />
             {t.rects.map((q, qi) => {
               // the week packs itself: day by day, top to bottom, focus blocks last
               const at = D + 8 + Math.floor(q.x / COL) * 2.2 + (q.y / HOUR) * 0.8 + (q.k === 1 ? 5 : 0);
