@@ -1,5 +1,5 @@
 import React from 'react';
-import { AbsoluteFill, Easing, useCurrentFrame } from 'remotion';
+import { AbsoluteFill, Easing, Img, staticFile, useCurrentFrame } from 'remotion';
 import { C } from '../brand/tokens';
 import { E, mix, prog, rand } from '../lib/anim';
 import { ACT, CUE } from '../timeline';
@@ -62,7 +62,8 @@ const PLANS: Plan[] = (() => {
 
 // absolute landing frames for the soundtrack
 // the camera straightens with a long settle that is still creeping when the features act takes over
-export const STRAIGHTEN_LEN = ACT.plan.dur - (CUE.straighten - ACT.plan.from);
+export const STRAIGHTEN = { from: CUE.straighten - ACT.plan.from - 20, to: ACT.plan.dur };
+export const STRAIGHTEN_EASE = Easing.bezier(0.4, 0, 0.1, 1);
 export const LANDINGS = PLANS.filter((p) => p.a).map((p) => ({ f: p.t2 + ACT.plan.from, heavy: !p.b || p.a?.kind === 'focus' }));
 
 const lerpRect = (a: Rect, b: Rect, t: number): Rect => ({ x: mix(a.x, b.x, t), y: mix(a.y, b.y, t), w: mix(a.w, b.w, t), h: mix(a.h, b.h, t) });
@@ -75,11 +76,12 @@ export const Act4Plan: React.FC = () => {
   const retract = prog(f, 13, 26, E.inOut);
 
   // --- camera -----------------------------------------------------------------------
-  const st = prog(f, L(CUE.straighten), L(CUE.straighten) + STRAIGHTEN_LEN, E.cam);
-  const orbit = prog(f, 0, L(CUE.straighten) + 10, E.smooth);
+  // the orbit is still settling while the straighten starts from rest: one continuous move, no stall
+  const st = prog(f, STRAIGHTEN.from, STRAIGHTEN.to, STRAIGHTEN_EASE);
+  const orbit = prog(f, 0, L(CUE.straighten) + 20, E.smooth);
   const rx = mix(mix(46, 36, orbit), 0, st);
   const rz = mix(mix(-11, -5, orbit), 0, st);
-  const s = mix(mix(1.75, 1.22, prog(f, 0, L(CUE.straighten), E.smooth)), APP_VIEW.s, st);
+  const s = mix(mix(1.75, 1.22, prog(f, 0, L(CUE.straighten) + 20, E.smooth)), APP_VIEW.s, st);
   const O = { x: mix(NOW_APP.x, CENTER_APP.x, st), y: mix(NOW_APP.y, CENTER_APP.y, st) };
   const P = { x: mix(720, 960, st), y: mix(360, 540, st) };
 
@@ -112,9 +114,10 @@ export const Act4Plan: React.FC = () => {
       blocks.push({ key: p.id, ev: p.b!, s: { rect, z, rot: p.wob * lift + go * 8, opacity: 1 - prog(f, p.t1 + 22, p.t1 + 46) }, shadow: { r: rect, z } });
     } else if (ra) {
       // newcomers fall in from high above
-      const appear = prog(f, p.t2 - 24, p.t2 - 16);
+      // ink blocks arrive solid, falling from above the frame (no translucent ghost mid-air)
+      const appear = prog(f, p.t2 - 24, p.t2 - 22);
       const drop = prog(f, p.t2 - 24, p.t2, E.in);
-      const z = mix(260, 0, drop);
+      const z = mix(700, 0, drop);
       const bounce = f > p.t2 ? Math.exp(-(f - p.t2) / 4) * Math.sin((f - p.t2) / 1.6) * 0.05 : 0;
       const flash = f >= p.t2 ? Math.exp(-(f - p.t2) / 10) : 0;
       if (appear > 0) blocks.push({ key: p.id, ev: p.a!, s: { rect: ra, z, opacity: appear, scale: 1 - bounce, ring: flash }, shadow: { r: ra, z } });
@@ -159,7 +162,8 @@ export const Act4Plan: React.FC = () => {
 
   return (
     <AbsoluteFill style={{ background: '#E7E8EC', overflow: 'hidden' }}>
-      <AbsoluteFill style={{ background: 'radial-gradient(ellipse 65% 60% at 50% 40%, #F7F8FA, rgba(247,248,250,0) 75%)' }} />
+      {/* the table, pre-dithered (a CSS gradient this subtle bands into rings) */}
+      <Img src={staticFile('fx/table.png')} style={{ position: 'absolute', left: 0, top: 0, width: 1920, height: 1080 }} />
       <div
         style={{
           position: 'absolute',

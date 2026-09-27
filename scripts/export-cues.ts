@@ -9,10 +9,10 @@ import { RAIN } from '../src/acts/act1-data';
 import { CLASH_AT, CLASH_DAYS, CLASH_STEP, KEY_FRAMES, PROMPT } from '../src/acts/Act3Prompt';
 import { loadAt } from '../src/app/weekLoad';
 import { HOLD_BEATS } from '../src/acts/Act2Mark';
-import { LANDINGS, STRAIGHTEN_LEN } from '../src/acts/Act4Plan';
+import { LANDINGS, STRAIGHTEN, STRAIGHTEN_EASE } from '../src/acts/Act4Plan';
 import { BEFORE } from '../src/app/data';
 import { FEAT_CUES as FC } from '../src/acts/Act5Features';
-import { HOP, MORPH, PULL_EASE, PULL_END, QUILT_TILES, SHUT_AT, SHUT_SPR, STRIKE, TILE_SPR } from '../src/acts/Act6End';
+import { HOP, MORPH, PULL_EASE, PULL_END, QUILT_TILES, SHUT_AT, SHUT_LEN, STRIKE, TILE_SPR } from '../src/acts/Act6End';
 import { E } from '../src/lib/anim';
 
 type Ease = (t: number) => number;
@@ -30,9 +30,9 @@ const peak = (a: number, b: number, ease: Ease) => {
   }
   return Math.round(best);
 };
-/** first frame where a spring started at `start` reaches its target */
-const hit = (start: number, cfg: Partial<SpringConfig>) => {
-  for (let f = 0; f < 120; f++) if (spring({ frame: f, fps: FPS, config: cfg }) >= 1) return start + f;
+/** first frame where a spring started at `start` reaches `thr` of its travel (1 = its target) */
+const hit = (start: number, cfg: Partial<SpringConfig>, thr = 1) => {
+  for (let f = 0; f < 120; f++) if (spring({ frame: f, fps: FPS, config: cfg }) >= thr) return start + f;
   return start + 30;
 };
 
@@ -64,14 +64,14 @@ const cues = {
   landings: LANDINGS.sort((a, b) => a.f - b.f),
   // neighbouring weeks snapping into the quilt (the ones near enough to be seen)
   quilt: QUILT_TILES.filter((t) => t.dist < 3.6)
-    .map((t) => ({ f: hit(endFrom + Math.round(t.delay), TILE_SPR), dist: +t.dist.toFixed(3), x: Math.sign(t.cx) }))
+    .map((t) => ({ f: hit(endFrom + Math.round(t.delay), TILE_SPR, 0.92), dist: +t.dist.toFixed(3), x: Math.sign(t.cx) }))
     .sort((a, b) => a.f - b.f),
   // camera velocity peaks (whoosh apex goes here)
   peaks: {
     fly: markFrom + peak(flyS, ACT.mark.dur - 14, E.inOut),
     zoom: P + peak(CUE.zoomBar - P, CUE.zoomBar - P + 54, E.cam),
     macro: P + peak(CUE.typeEnd - P - 4, CUE.click - P - 2, E.inOut),
-    straighten: CUE.straighten + peak(0, STRAIGHTEN_LEN, E.cam),
+    straighten: ACT.plan.from + peak(STRAIGHTEN.from, STRAIGHTEN.to, STRAIGHTEN_EASE),
     cardMorph: feat + FC.split, // the window splits open on its sidebar seam
     featAB: feat + FC.whipAB,
     featBC: feat + FC.whipBC,
@@ -79,6 +79,7 @@ const cues = {
     inviteExit: feat + FC.inviteExit - 4, // it lifts away (fades before its velocity peak)
     back: feat + FC.close,
     pullBack: endFrom + peak(0, PULL_END, PULL_EASE),
+    flood: P + ACT.prompt.dur - 4, // the red flood's edge is fastest just before it fills the frame
     lockup1: markFrom + peak(CUE.lockup - markFrom, CUE.lockup - markFrom + 34, E.inOut),
     lockup2: endFrom + peak(asm + 38, asm + 74, E.inOut),
     morph: endFrom + MORPH.to - 3, // the pieces accelerate into their landing
@@ -101,8 +102,8 @@ const cues = {
     f3LateSettle: feat + FC.f3LateSettle,
     f3ShiftSettle: feat + FC.f3ShiftSettle,
     wordsIn: CUE.fits - 22,
-    dotHop: endFrom + HOP.from + 4, // first frame the dot visibly leaves the line
-    quiltShut: hit(endFrom + SHUT_AT, SHUT_SPR),
+    dotHop: endFrom + HOP.from + 1, // first frame the dot visibly leaves the line
+    quiltShut: endFrom + SHUT_AT + SHUT_LEN, // the gutters close with velocity: contact frame
     strikeA: endFrom + STRIKE.a + 2,
     strikeB: endFrom + STRIKE.b + 2,
     fitsSnap: CUE.fits,

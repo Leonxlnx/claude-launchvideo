@@ -259,8 +259,8 @@ export const CommandBar: React.FC<{
                   style={{
                     background: `rgba(11,11,12,${0.07 * (chipIn[i] ?? 0)})`,
                     borderRadius: 7,
-                    padding: '1px 4px',
-                    margin: '0 0 0 1px',
+                    padding: `1px ${4 * (chipIn[i] ?? 0)}px`,
+                    margin: `0 0 0 ${chipIn[i] ?? 0}px`,
                     position: 'relative',
                     fontWeight: 540,
                     whiteSpace: 'pre',

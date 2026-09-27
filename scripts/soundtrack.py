@@ -269,12 +269,12 @@ def ui_click(d=0.25):
     return c * 0.8 + ping + low
 
 
-def snap(d=0.6, weight=1.0):
-    """Logo-lock snap: tight click + body + short tail."""
+def snap(d=0.6, weight=1.0, root=51.91):
+    """Logo-lock snap: tight click + body + short tail, tuned to the chord root under it."""
     t = tt(d)
     c = filt(noise(d), sos_bp(1800, 9000, 2)) * np.exp(-t / 0.003) * 1.2
-    body = np.sin(2 * np.pi * (220 + 180 * np.exp(-t / 0.008)) * t) * np.exp(-t / 0.045) * 0.7
-    low = np.sin(2 * np.pi * (60 + 30 * np.exp(-t / 0.02)) * t) * np.exp(-t / 0.16) * weight
+    body = sine(4 * root * (1 + 0.8 * np.exp(-t / 0.008)), d) * np.exp(-t / 0.045) * 0.7
+    low = sine(root * (1 + 0.5 * np.exp(-t / 0.02)), d) * np.exp(-t / 0.16) * weight
     return sat(c + body + low, 1.3)
 
 
@@ -476,13 +476,15 @@ def build_music():
             K(s + 2 * BEAT, 0.85)
             place(drums, clap(), s + 2 * BEAT, 0.42)
             for k in range(8):
+                if any(abs(s + k * BEAT / 2 - fr(h)) < 1e-3 for h in S_['holdBeats']):
+                    continue  # the clock tick owns this beat
                 place(drums, hat(0.08, 0.012), s + k * BEAT / 2, 0.10 if k % 2 else 0.05, pan=0.25)
         elif b in (6, 7):
             K(s, 0.55, 0.8)
             if b == 7:
                 K(s + 2 * BEAT, 0.45, 0.8)
-            for k in range(16):
-                place(drums, hat(0.05, 0.008, 9000), s + k * BEAT / 4, 0.045 + 0.03 * (k % 4 == 2), pan=-0.2 + 0.4 * (k % 2))
+            for k in range(0, 16, 2):  # 8ths only: the key clicks own the 16th grid
+                place(drums, hat(0.05, 0.008, 9000), s + k * BEAT / 4, 0.03, pan=-0.2 + 0.4 * ((k // 2) % 2))
         elif b in (8, 9):
             for q in range(4):
                 K(s + q * BEAT, 1.0 if q == 0 else 0.85)
@@ -576,7 +578,8 @@ def marker(d=0.25):
 
 def conflict_blip(d=0.08):
     t = tt(d)
-    x = (np.sin(2 * np.pi * 392.0 * t) + np.sin(2 * np.pi * 415.3 * t)) * 0.5
+    x = (np.sin(2 * np.pi * 784.0 * t) + np.sin(2 * np.pi * 830.6 * t)) * 0.5
+    x += filt(noise(d), sos_bp(2000, 6000)) * np.exp(-t / 0.003) * 0.5
     return x * np.minimum(1, t / 0.002) * np.exp(-t / 0.02)
 
 
@@ -610,18 +613,18 @@ def build_sfx():
     # Act 2 — drop 1 on silence: flood + mark snaps + wordmark + fly into the app
     place(fx, sub_boom(2.6, 69.3, 34.65, 0.12), fr(c['drop1']), 0.75)  # Db2 -> Db1
     place(fx, whoosh(0.35, 150, 1400, 300, 0.2), fr(c['drop1']), 0.22)
-    place(fx, snap(0.6, 0.8), fr(s['markSnapA']), 0.42, pan=-0.2)
-    place(fx, snap(0.6, 1.0), fr(s['markSnapB']), 0.46, pan=0.2)
+    place(fx, snap(0.6, 0.8, mtof(37)), fr(s['markSnapA']), 0.42, pan=-0.2)  # over Db
+    place(fx, snap(0.6, 1.0, mtof(37)), fr(s['markSnapB']), 0.46, pan=0.2)
     place_at_peak(fx, whoosh(0.55, 500, 3500, 1200, 0.35, 0.6), 0.35, fr(pk['lockup1']), 0.12)
-    for at in s['holdBeats']:  # the dot keeps the clock through the lockup hold
-        place(fx, tick(3000, 0.06, 0.006, 0.6), fr(at), 0.05)
-    place_at_peak(fx, whoosh(0.75, 250, 1800, 400, 0.6, 1.0), 0.6, fr(pk['fly']), 0.40)
+    for i, at in enumerate(s['holdBeats']):  # the dot keeps the clock through the lockup hold
+        place(fx, tick(3000 if i % 2 == 0 else 2250, 0.08, 0.008, 0.8), fr(at), 0.16, pan=0.15 if i % 2 else -0.15)
+    place_at_peak(fx, whoosh(0.6, 250, 1800, 400, 0.6, 1.0), 0.6, fr(pk['fly']), 0.40)
 
     # Act 3 — week loads, clashes, zoom, typing, click, flood
     for i, f in enumerate(CUES['cascade']):
-        place(fx, tick(2800 + (i % 5) * 180, 0.03, 0.003, 0.5), fr(f), 0.035, pan=(i % 7 - 3) / 4)
+        place(fx, tick(2800 + (i % 5) * 180, 0.03, 0.003, 0.5), fr(f), 0.07, pan=(i % 7 - 3) / 4)
     for i, f in enumerate(CUES['clashes']):
-        place(fx, conflict_blip(), fr(f), 0.09, pan=-0.6 + 1.2 * i / 6)
+        place(fx, conflict_blip(), fr(f), 0.26, pan=-0.6 + 1.2 * i / max(1, len(CUES['clashes']) - 1))
     place_at_peak(fx, whoosh(0.9, 200, 1500, 400, 0.55, 0.6), 0.55, fr(pk['zoom']), 0.30)
     last = -1e9
     for i, f in enumerate(CUES['keys']):
@@ -632,12 +635,12 @@ def build_sfx():
         if CUES['keySpace'][i]:
             place(fx, tock(700 * (0.94 + 0.12 * r.random()), 0.08, 0.02, 0.3), fr(f), 0.14, pan=((i * 37) % 11 - 5) / 20)
         else:
-            g = 0.18 if CUES['keyWordStart'][i] else 0.09
+            g = 0.24 if CUES['keyWordStart'][i] else 0.14
             place(fx, key_click(i), fr(f), g, pan=((i * 37) % 11 - 5) / 20)
     place_at_peak(fx, whoosh(0.5, 400, 2600, 700, 0.6, 0.4), 0.6, fr(pk['macro']), 0.20)
     place(fx, riser(1.6, 250, 9000, True, 56), fr(c['click']) - 1.1, 0.22)
     place(fx, ui_click(), fr(s['click']), 0.60)
-    place(fx, whoosh(0.3, 300, 5000, 2000, 0.9, 0.3), fr(s['flood']), 0.26)
+    place_at_peak(fx, whoosh(0.45, 300, 5000, 2000, 0.85, 0.3), 0.85, fr(pk['flood']), 0.30)
 
     # Act 4 — drop 2: the fitting
     place(fx, sub_boom(2.4, 69.3, 34.65, 0.12), fr(c['drop2']), 0.5)  # Db2 -> Db1
@@ -650,8 +653,9 @@ def build_sfx():
             rh = root_hz[8 if tl < bar(9) else 9]
             place(fx, tock(600 + r.random() * 200, 0.2, 0.05, 1.0), tl, 0.26, pan=r.random() - 0.5)
             place(fx, sub_boom(1.2, rh, rh / 2), tl, 0.14)
-        else:
-            place(fx, tock(1100 + r.random() * 800, 0.12, 0.028, 0.35), tl, 0.15, pan=r.random() * 1.4 - 0.7)
+        else:  # tuned to the chord: the fitting sounds ordered, not random
+            ladder = [85, 89, 92, 96] if tl < bar(9) else [84, 87, 92, 96]
+            place(fx, tock(mtof(ladder[i % 4]), 0.12, 0.028, 0.35), tl, 0.15, pan=r.random() * 1.4 - 0.7)
     place_at_peak(fx, whoosh(1.1, 200, 1600, 300, 0.45, 0.8), 0.45, fr(pk['straighten']), 0.26)
     place(fx, fm_bell(87, 1.2, 1.2, 2.0, 0.35), fr(s['toast']), 0.09, pan=0.1)
     place(fx, fm_bell(92, 1.2, 1.0, 2.0, 0.35), fr(s['toast']) + 0.09, 0.07, pan=0.1)
@@ -661,18 +665,19 @@ def build_sfx():
     place_at_peak(fx, whoosh(0.7, 300, 2000, 500, 0.5, 0.6), 0.5, fr(pk['cardMorph']), 0.24)
     for key in ('featAB', 'featBC'):
         place_at_peak(fx, whoosh(0.45, 400, 2400, 700, 0.4, 0.5), 0.4, fr(pk[key]), 0.16)
-    for f in s['ratchet']:  # the reel rolls: three ratchet ticks into each detent
-        for k in range(3):
+    for j, f in enumerate(s['ratchet']):  # the reel rolls: three ratchet ticks into each detent
+        n = 3 if j < len(s['detents']) else 1  # the last roll is an exit
+        for k in range(n):
             place(fx, tick(2100 - k * 150, 0.04, 0.004, 0.6), fr(f) + k * 0.05, 0.14 - 0.03 * k, pan=-0.4)
     for f in s['detents']:
         place(fx, tock(1700, 0.06, 0.012, 0.3), fr(f), 0.10, pan=-0.4)
     place(fx, whoosh(0.35, 800, 2500, 1200, 0.5, 0.3), fr(s['f1Lift']), 0.12)
     place(fx, tock(1300, 0.12, 0.03, 0.4), fr(s['f1Land']), 0.30)
     for i, f in enumerate(s['f1Checks']):
-        place(fx, tick(3400 + i * 260, 0.05, 0.01, 0.7), fr(f), 0.12, pan=0.3)
+        place(fx, tick(mtof([99, 101, 103, 104][i % 4]), 0.05, 0.01, 0.7), fr(f), 0.12, pan=0.3)  # Eb F G Ab
     place_at_peak(fx, whoosh(0.6, 2400, 500, 200, 0.75, 0.4), 0.75, fr(pk['invite']), 0.2)  # falls toward the page
     bt = tt(0.25)
-    place(fx, np.sin(2 * np.pi * (170 + 90 * np.exp(-bt / 0.02)) * bt) * np.exp(-bt / 0.06), fr(s['f2Bounce']), 0.45)
+    place(fx, sine(174.6 + 90 * np.exp(-bt / 0.02), 0.25) * np.exp(-bt / 0.06), fr(s['f2Bounce']), 0.45)  # F3
     place(fx, tick(2600, 0.06, 0.01, 0.8), fr(s['f2Reply']), 0.15)
     place_at_peak(fx, whoosh(0.3, 500, 2500, 800, 0.5, 0.6), 0.5, fr(pk['inviteExit']), 0.14)
     place(fx, fm_bell(84, 0.8, 0.8, 2.0, 0.25), fr(s['f3Late']), 0.08)
@@ -681,7 +686,7 @@ def build_sfx():
     place_at_peak(fx, whoosh(0.7, 300, 2000, 400, 0.4, 0.6), 0.4, fr(pk['back']), 0.22)
 
     # Act 6 — pull back, the fit, the words become the mark, lockup
-    place_at_peak(fx, whoosh(2.0, 150, 1200, 250, 0.18, 1.0), 0.18, fr(pk['pullBack']) + 0.1, 0.26)
+    place_at_peak(fx, whoosh(2.0, 150, 1200, 250, 0.18, 1.0), 0.18, fr(pk['pullBack']), 0.26)
     # the neighbouring weeks snap into the quilt: an ordered echo of the opening rain, tuned to Fm9
     # and rising as the wave spreads out (one voice per landing moment, sparser and quieter outward)
     groups = []
@@ -699,7 +704,7 @@ def build_sfx():
         place(fx, tock(mtof(m), 0.1, 0.018, 0.15), fr(g['f']), 0.14 * fade * min(1.6, g['n'] ** 0.35), pan=pan)
         place(fx, fm_bell(m, 0.6, 0.5, 2.0, 0.11), fr(g['f']), 0.06 * fade, pan=pan)
     # the gutters close: the quilt snaps shut (bar 14, Eb)
-    place(fx, snap(0.5, 0.7), fr(s['quiltShut']), 0.28)
+    place(fx, snap(0.5, 0.7, mtof(39)), fr(s['quiltShut']), 0.28)  # over Eb
     place(fx, tock(mtof(63), 0.3, 0.06, 1.0), fr(s['quiltShut']), 0.3)
     place(fx, fm_bell(87, 1.2, 0.8, 2.0, 0.3), fr(s['quiltShut']), 0.05)
     rz = 3.2
@@ -707,19 +712,20 @@ def build_sfx():
     place(fx, blip(1244.5, True, 0.14), fr(s['dotHop']), 0.22, pan=0.1)  # Eb6 -> Bb6, a free register
     place(fx, whoosh(0.4, 300, 2500, 800, 0.8, -0.8), fr(s['wordsIn']), 0.12)
     place(fx, whoosh(0.4, 300, 2500, 800, 0.8, 0.8), fr(s['wordsIn']), 0.12)
-    place(fx, snap(0.8, 1.0), fr(s['fitsSnap']), 0.55)
+    place(fx, snap(0.8, 1.0, mtof(32)), fr(s['fitsSnap']), 0.55)  # the tonic
     place(fx, sub_boom(3.0, 103.8, 51.9, 0.07), fr(s['fitsSnap']), 0.35)  # Ab2 -> Ab1, on pitch before the bass
     # the ink strike: two felt-marker strokes, left then right, then the lines swell into blocks
     place(fx, marker(0.26), fr(s['strikeA']), 0.20, pan=-0.3)
     place(fx, marker(0.22), fr(s['strikeB']), 0.21, pan=0.3)
     place(fx, tock(420, 0.3, 0.06, 1.0), fr(s['wordsFill']), 0.12)
     place_at_peak(fx, whoosh(0.35, 400, 2400, 600, 0.85, 0.4), 0.85, fr(s['markMorph']), 0.12)
-    place(fx, snap(0.6, 0.9), fr(s['markMorph']), 0.5)
+    place(fx, snap(0.6, 0.9, mtof(32)), fr(s['markMorph']), 0.5)
     place_at_peak(fx, whoosh(0.55, 500, 3500, 1200, 0.35, 0.6), 0.35, fr(pk['lockup2']), 0.16)
-    # bookend: the film ends on the tick-tock it opened with
-    place(fx, tick(3000, 0.06, 0.006, 0.6), fr(s['finalBlink']), 0.24)
-    place(fx, tick(2250, 0.06, 0.006, 0.6), fr(s['finalTock']), 0.2)
-    return fx
+    # bookend: the film ends on the tick-tock it opened with (outside the master fade, see main)
+    end = buf()
+    place(end, tick(3000, 0.06, 0.006, 0.6), fr(s['finalBlink']), 0.24)
+    place(end, tick(2250, 0.06, 0.006, 0.6), fr(s['finalTock']), 0.22)
+    return fx, end
 
 
 # ---------------------------------------------------------------------------------------
@@ -768,7 +774,7 @@ def main():
     os.makedirs(os.path.join(ROOT, 'out', 'stems'), exist_ok=True)
     os.makedirs(os.path.join(ROOT, 'public', 'audio'), exist_ok=True)
     m = build_music()
-    fx = build_sfx()
+    fx, fx_end = build_sfx()
     t = np.arange(N) / SR
     end = CUES['total'] / FPS
 
@@ -788,7 +794,7 @@ def main():
 
     # music-bus automation: typing tucked, features under the UI sounds, breakdown lifts into "fits."
     bus = envelope([
-        (0, 1.0), (bar(6, 1), 1.0), (bar(6, 1.5), 0.72), (bar(8) - 0.02, 0.72), (bar(8), 1.0),
+        (0, 1.0), (bar(6, 1), 1.0), (bar(6, 1.5), 0.8), (bar(8) - 0.02, 0.8), (bar(8), 1.0),
         (bar(10) - 0.1, 1.0), (bar(10), 0.72), (bar(13) - 0.1, 0.72), (bar(13), 0.85),
         (bar(15) - 0.3, 0.85), (bar(15), 1.0), (DUR, 1.0),
     ])
@@ -834,6 +840,7 @@ def main():
     # natural ending: the tail decays over the held end card and reaches silence at the last frame
     fade = np.clip((end - 0.03 - t) / 1.3, 0, 1) ** 2
     mix *= fade[:, None]
+    mix += filt(fx_end, sos_hp(250, 2)) * 1.25 + reverb(filt(fx_end, sos_hp(250, 2)) * 0.18, IR_ROOM)
 
     import pyloudnorm as pyln
     meter = pyln.Meter(SR)
@@ -841,7 +848,7 @@ def main():
     for _ in range(3):
         lufs = meter.integrated_loudness(body)
         mix *= 10 ** ((-14.0 - lufs) / 20)
-        mix = limiter(mix, ceiling=0.85)
+        mix = limiter(mix, ceiling=0.77)  # headroom for the AAC encode (true peak stays under -1 dBTP)
         body = mix[: int((end - 1.5) * SR)]
     mix = mix[: int(end * SR)]
     mix[-480:] = 0

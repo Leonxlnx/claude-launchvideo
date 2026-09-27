@@ -1,5 +1,5 @@
 import React from 'react';
-import { AbsoluteFill, useCurrentFrame } from 'remotion';
+import { AbsoluteFill, Img, staticFile, useCurrentFrame } from 'remotion';
 import { C } from '../brand/tokens';
 import { E, mix, prog, rand, tw } from '../lib/anim';
 import { ACT, CUE } from '../timeline';
@@ -175,11 +175,8 @@ export const Act3Prompt: React.FC = () => {
 
   return (
     <AbsoluteFill style={{ background: C.ink, overflow: 'hidden' }}>
-      <AbsoluteFill
-        style={{
-          background: 'radial-gradient(ellipse 70% 60% at 50% 45%, rgba(255,255,255,0.075), rgba(255,255,255,0) 70%)',
-        }}
-      />
+      {/* the soft glow, pre-dithered (a CSS gradient this subtle bands into rings) */}
+      <Img src={staticFile('fx/glow-ink.png')} style={{ position: 'absolute', left: 0, top: 0, width: 1920, height: 1080 }} />
       {/* app: racks out of focus as the bar lifts (cross-faded, so the blur never snaps) */}
       <RackFocus
         t={z1}

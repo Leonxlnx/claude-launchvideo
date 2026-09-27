@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""Fails if the audio in a rendered mp4 is offset from public/audio/soundtrack.wav by more than 1 ms."""
+"""Fails if the audio in a rendered mp4 is offset from public/audio/soundtrack.wav by more than 1 ms,
+or if the delivered (AAC-decoded) audio's true peak is above -1 dBTP."""
 import subprocess
 import sys
 
@@ -22,4 +23,7 @@ for t in (4.0, 14.0, 28.0):
     print(f'  t={t:5.1f}s  lag {lag:+d} samples')
 ok = worst <= 48
 print('sync OK' if ok else f'sync FAIL: {worst} samples')
-sys.exit(0 if ok else 1)
+tp = 20 * np.log10(np.max(np.abs(signal.resample_poly(dec, 4, 1, axis=0))) + 1e-12)
+tp_ok = tp <= -1.0
+print(f'true peak {tp:.2f} dBTP ' + ('OK' if tp_ok else 'FAIL (above -1 dBTP)'))
+sys.exit(0 if ok and tp_ok else 1)
