@@ -2,6 +2,7 @@
   "name": "tessel-launch-video",
   "version": "1.0.0",
   "private": true,
+  "license": "MIT",
   "description": "Launch film for a fictional product, built in code with Remotion.",
   "scripts": {
     "studio": "remotion studio",

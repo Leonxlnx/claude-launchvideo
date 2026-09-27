@@ -93,8 +93,13 @@ scripts/
   make-backdrops.py    pre-dithered glow and table backdrops (public/fx/)
   accumulate.py        averages sub-frames into the motion-blurred master
   check-sync.py        verifies audio/picture alignment in a rendered file
-  audio_balance.py     octave-band spectrum comparison
   sheet.sh             contact sheets for frame-by-frame review
 ```
 
 Tessel is fictional. Any resemblance to a real product is unintended.
+
+Built end to end with [Claude Code](https://claude.com/claude-code): the brand, the film, the score and the render pipeline.
+
+## License
+
+MIT. See [LICENSE](LICENSE).
