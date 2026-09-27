@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { AbsoluteFill, Easing, useCurrentFrame } from 'remotion';
 import { C, FONT } from '../brand/tokens';
 import { E, hitPulse, mix, prog, tw } from '../lib/anim';
@@ -6,6 +6,7 @@ import { Words } from '../fx/Words';
 import { CUE } from '../timeline';
 import { ACT1, RAIN, RainBlock, STACK_LIFT } from './act1-data';
 import { fmt, NOW } from '../app/data';
+import { measureTracked } from '../lib/measure';
 
 // ACT 1 — "Your week doesn't fit."
 // A red dot (now) draws the day, meetings rain in, the headline overflows the frame,
@@ -140,7 +141,12 @@ export const Act1Fit: React.FC = () => {
 
   // headline 2 slam
   const slam = prog(f, CUE.doesntFit - 1, CUE.doesntFit + 14, E.out); // first new picture on the hit frame
-  const bigScale = mix(1.32, 1, slam) * tw(f, CUE.doesntFit, CUE.implodeStart, 1, 1.05, E.smooth);
+  const bigScale = mix(1.2, 1, slam) * tw(f, CUE.doesntFit, CUE.implodeStart, 1, 1.05, E.smooth);
+  // "doesn't fit." is sized to sit inside the frame with even margins on both sides, even at its
+  // largest (the slow grow x the act's push-in): 1480px at rest -> ~1660px at the end of the hold
+  const fitW = useMemo(() => measureTracked('doesn\u2019t fit.', 430, 600, -0.055), []);
+  const bigSize = (430 * 1480) / fitW;
+  const bigTop = 590 + 0.45 * 430 - 0.45 * bigSize; // keep the line's centre where it was
   const line1Y = tw(f, CUE.doesntFit - 6, CUE.doesntFit + 16, 0, -40, E.out);
 
   // rain blur grows as the pile gets dense (depth of field behind the type)
@@ -217,16 +223,16 @@ export const Act1Fit: React.FC = () => {
         >
           <Words text="Your week" frame={f} start={CUE.yourWeek} stagger={9} dur={28} />
         </div>
-        {/* line 2 — too big for the frame, on purpose */}
+        {/* line 2 — as big as the frame allows, with a margin on both sides */}
         <div
           style={{
             position: 'absolute',
-            left: -400,
+            left: -410, // optical centring: the glyphs' side bearings leave a little more air on the left
             width: 2720,
-            top: 590,
+            top: bigTop,
             textAlign: 'center',
             fontFamily: FONT.sans,
-            fontSize: 430,
+            fontSize: bigSize,
             fontWeight: 600,
             letterSpacing: '-0.055em',
             color: C.ink,
@@ -235,7 +241,7 @@ export const Act1Fit: React.FC = () => {
             opacity: slam,
             filter: `blur(${(1 - slam) * 22}px)`,
             transform: `scale(${bigScale})`,
-            transformOrigin: '1360px 180px',
+            transformOrigin: `1360px ${0.45 * bigSize}px`,
           }}
         >
           doesn&rsquo;t fit.

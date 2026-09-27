@@ -9,6 +9,7 @@ A 1-LSB triangular dither before quantizing keeps the dark glows free of banding
 Usage: python3 scripts/accumulate.py <sub.mp4> <samples.json> <out.mp4>
 """
 import json
+import os
 import subprocess
 import sys
 
@@ -29,7 +30,7 @@ enc = subprocess.Popen(
         'ffmpeg', '-v', 'error', '-y',
         '-f', 'rawvideo', '-pix_fmt', 'rgb48le', '-s', f'{W}x{H}', '-r', '60', '-i', '-',
         '-vf', 'scale=out_color_matrix=bt709:out_range=tv:flags=accurate_rnd+full_chroma_int',
-        '-c:v', 'libx264', '-preset', 'slow', '-crf', '14', '-pix_fmt', 'yuv420p',
+        '-c:v', 'libx264', '-preset', 'slow', '-crf', os.environ.get('ACCUM_CRF', '14'), '-pix_fmt', 'yuv420p',
         '-colorspace', 'bt709', '-color_primaries', 'bt709', '-color_trc', 'bt709', '-color_range', 'tv',
         '-movflags', '+faststart', out,
     ],
