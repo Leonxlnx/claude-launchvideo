@@ -38,15 +38,15 @@
   "implodeStart": 330,
   "silence": 345,
   "drop1": 360,
-  "lockup": 420,
+  "lockup": 405,
   "descriptor": 480,
-  "flyIn": 555,
+  "flyIn": 540,
   "appSettle": 600,
   "zoomBar": 630,
   "typeStart": 660,
   "typeEnd": 780,
   "click": 810,
-  "redFill": 825,
+  "redFill": 814,
   "drop2": 840,
   "landingsFrom": 870,
   "landingsTo": 990,
@@ -65,51 +65,65 @@
  },
  "rain": [
   150,
-  152,
-  154,
-  156,
-  159,
-  161,
-  163,
-  165,
-  168,
-  170,
-  172,
+  167,
   175,
-  177,
-  179,
   182,
-  184,
   187,
-  190,
-  192,
-  195,
-  198,
-  200,
-  203,
+  193,
+  197,
+  202,
   206,
-  209,
-  212,
-  215,
-  218,
+  210,
+  214,
+  217,
   221,
-  225,
-  228,
-  232,
-  235,
+  224,
+  227,
+  230,
+  234,
+  236,
   239,
-  243,
-  247,
-  251,
-  255,
-  260,
-  265,
-  271,
+  242,
+  245,
+  248,
+  250,
+  253,
+  256,
+  258,
+  261,
+  263,
+  266,
+  268,
+  270,
+  273,
+  275,
   277,
-  283,
-  291,
-  301,
-  322
+  279,
+  281,
+  284,
+  286,
+  288,
+  290,
+  292,
+  294,
+  296,
+  298,
+  300,
+  302,
+  304,
+  306,
+  308,
+  310,
+  312,
+  314,
+  315,
+  317,
+  319,
+  321,
+  323,
+  324,
+  326,
+  328
  ],
  "keys": [
   662,
@@ -227,19 +241,15 @@
    "heavy": false
   },
   {
-   "f": 915,
+   "f": 916,
    "heavy": false
   },
   {
-   "f": 915,
+   "f": 917,
    "heavy": false
   },
   {
-   "f": 915,
-   "heavy": false
-  },
-  {
-   "f": 923,
+   "f": 918,
    "heavy": false
   },
   {
@@ -247,83 +257,75 @@
    "heavy": false
   },
   {
-   "f": 923,
+   "f": 924,
    "heavy": false
   },
   {
-   "f": 923,
+   "f": 924,
    "heavy": false
   },
   {
-   "f": 923,
+   "f": 924,
    "heavy": false
   },
   {
-   "f": 923,
+   "f": 925,
    "heavy": false
   },
   {
-   "f": 930,
+   "f": 925,
    "heavy": false
   },
   {
-   "f": 930,
+   "f": 931,
    "heavy": false
   },
   {
-   "f": 938,
+   "f": 933,
    "heavy": false
   },
   {
-   "f": 938,
+   "f": 939,
    "heavy": false
   },
   {
-   "f": 938,
+   "f": 939,
    "heavy": false
   },
   {
-   "f": 938,
-   "heavy": false
-  },
-  {
-   "f": 938,
+   "f": 939,
    "heavy": true
   },
   {
-   "f": 938,
+   "f": 939,
    "heavy": false
   },
   {
-   "f": 938,
+   "f": 940,
    "heavy": false
   },
   {
-   "f": 945,
+   "f": 940,
    "heavy": false
   },
   {
-   "f": 945,
+   "f": 941,
    "heavy": false
   },
   {
-   "f": 945,
+   "f": 946,
    "heavy": false
   },
   {
-   "f": 945,
+   "f": 946,
    "heavy": false
   },
   {
-   "f": 953,
+   "f": 946,
    "heavy": false
   },
   {
-   "f": 953,
-   "heavy": false
-  },
-  {
-   "f": 953,
+   "f": 947,
    "heavy": false
   },
   {
@@ -333,6 +335,18 @@
   {
    "f": 953,
    "heavy": true
+  },
+  {
+   "f": 955,
+   "heavy": false
+  },
+  {
+   "f": 955,
+   "heavy": false
+  },
+  {
+   "f": 956,
+   "heavy": false
   },
   {
    "f": 960,
@@ -356,14 +370,14 @@
   }
  ],
  "sfx": {
-  "markSnapA": 378,
-  "markSnapB": 384,
-  "wordmark": 434,
-  "flyWhoosh": 555,
+  "markSnapA": 381,
+  "markSnapB": 385,
+  "wordmark": 419,
+  "flyWhoosh": 540,
   "zoomWhoosh": 630,
   "macroWhoosh": 774,
   "click": 810,
-  "flood": 823,
+  "flood": 812,
   "straighten": 990,
   "toast": 1050,
   "cardMorph": 1080,
@@ -375,8 +389,8 @@
    1144,
    1150
   ],
-  "drum2": 1190,
-  "drum3": 1310,
+  "drum2": 1196,
+  "drum3": 1316,
   "f2Invite": 1216,
   "f2Bounce": 1244,
   "f2Reply": 1258,
@@ -386,9 +400,10 @@
   "pullBack": 1444,
   "wordsIn": 1658,
   "fitsSnap": 1680,
-  "markSnap2A": 1762,
-  "markSnap2B": 1768,
-  "lockup2": 1784,
+  "markSnap2A": 1779,
+  "markSnap2B": 1781,
+  "wordsFill": 1738,
+  "lockup2": 1790,
   "finalBlink": 1890
  }
 }

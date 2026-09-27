@@ -7,6 +7,7 @@ import { APP, BAR, CalendarApp, CommandBar, evRect, SEND, Token } from '../app/C
 import { BEFORE } from '../app/data';
 import { APP_VIEW } from './Act2Mark';
 import { Cursor } from '../fx/Cursor';
+import { RackFocus } from '../fx/RackFocus';
 
 // ACT 3 — the week loads (overbooked), we push into the command bar,
 // type what matters, click the red dot, and it floods the frame.
@@ -117,7 +118,6 @@ export const Act3Prompt: React.FC = () => {
   const bx = bScreen.x - barFocusApp.x * SB;
   const by = bScreen.y - barFocusApp.y * SB;
   const lift = z1;
-  const appBlur = mix(0, 10, z1);
   const appDim = mix(0, 0.18, z1);
 
   // week loads: events cascade in, column by column
@@ -142,7 +142,7 @@ export const Act3Prompt: React.FC = () => {
 
   // cursor → send → click
   const clickF = L(CUE.click);
-  const cur = prog(f, clickF - 36, clickF + 6, E.out);
+  const cur = prog(f, clickF - 26, clickF + 3, E.out);
   const sendScreen = { x: bx + sendApp.x * SB, y: by + sendApp.y * SB };
   // quadratic bezier from lower right, bowing upward, landing on the button
   const p0 = { x: sendScreen.x + 560, y: sendScreen.y + 360 };
@@ -151,10 +151,12 @@ export const Act3Prompt: React.FC = () => {
   const q = (a: number, b: number, c: number, t: number) => (1 - t) * (1 - t) * a + 2 * (1 - t) * t * b + t * t * c;
   const curX = q(p0.x, p1.x, p2.x, cur);
   const curY = q(p0.y, p1.y, p2.y, cur);
-  const press = prog(f, clickF, clickF + 4, E.out) * (1 - prog(f, clickF + 6, clickF + 14, E.out));
+  const squash = prog(f, clickF, clickF + 4, E.out);
+  const recoil = prog(f, clickF + 4, clickF + 12, E.out);
+  const press = squash * (1 - recoil) * 1.8 - recoil * 0.6 * (1 - prog(f, clickF + 12, clickF + 20, E.smooth));
 
   // red flood from the send button
-  const fl = prog(f, L(CUE.redFill) - 2, ACT.prompt.dur, E.in);
+  const fl = prog(f, L(CUE.redFill), ACT.prompt.dur, E.in);
   const floodR = mix(21 * SB * (1 - 0.1 * press), 2300, fl);
 
   return (
@@ -164,22 +166,26 @@ export const Act3Prompt: React.FC = () => {
           background: 'radial-gradient(ellipse 70% 60% at 50% 45%, rgba(255,255,255,0.075), rgba(255,255,255,0) 70%)',
         }}
       />
-      {/* app (blurred as we push in) — blur runs on a viewport-sized wrapper, not the scaled layer */}
-      <div style={{ position: 'absolute', left: -80, top: -80, width: 2080, height: 1240, overflow: 'hidden', filter: appBlur > 0.05 ? `blur(${appBlur}px)` : undefined }}>
-        <div
-          style={{
-            position: 'absolute',
-            left: 80,
-            top: 80,
-            width: APP.W,
-            height: APP.H,
-            transform: `translate(${tx}px, ${ty}px) scale(${SA})`,
-            transformOrigin: '0 0',
-          }}
-        >
-          <CalendarApp events={events} nowO={nowT} hideBar clashes={7} clashO={prog(f, 36, 50, E.out)} shadow={false} />
-        </div>
-      </div>
+      {/* app: racks out of focus as the bar lifts (cross-faded, so the blur never snaps) */}
+      <RackFocus
+        t={z1}
+        blur={10}
+        render={() => (
+          <div
+            style={{
+              position: 'absolute',
+              left: 0,
+              top: 0,
+              width: APP.W,
+              height: APP.H,
+              transform: `translate(${tx}px, ${ty}px) scale(${SA})`,
+              transformOrigin: '0 0',
+            }}
+          >
+            <CalendarApp events={events} nowO={1} lineT={nowT} hideBar clashes={12} clashO={prog(f, 36, 50, E.out)} shadow={false} />
+          </div>
+        )}
+      />
       <AbsoluteFill style={{ background: C.ink, opacity: appDim }} />
       {/* command bar, always sharp */}
       <div

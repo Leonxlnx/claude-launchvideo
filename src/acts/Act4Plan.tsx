@@ -1,5 +1,5 @@
 import React from 'react';
-import { AbsoluteFill, useCurrentFrame } from 'remotion';
+import { AbsoluteFill, Easing, useCurrentFrame } from 'remotion';
 import { C, FONT } from '../brand/tokens';
 import { E, mix, prog, rand, spr, tw } from '../lib/anim';
 import { ACT, CUE } from '../timeline';
@@ -52,7 +52,8 @@ const PLANS: Plan[] = (() => {
       a,
       t0: lift,
       t1: lift + 14,
-      t2: Math.round(Math.round(t2 / 7.5) * 7.5),
+      // on the 16th grid, with a 0–3 frame cascade inside each beat so batches read as a roll
+      t2: Math.round(Math.round(t2 / 7.5) * 7.5) + (b && a ? Math.round(r(4) * 3) : 0),
       zUp: 70 + r(2) * 60,
       wob: (r(3) - 0.5) * 7,
     };
@@ -68,17 +69,17 @@ export const Act4Plan: React.FC = () => {
   const f = useCurrentFrame();
 
   // --- red field collapses into the now dot (screen center) --------------------------
-  const col = prog(f, 0, 20, E.inOut);
-  const redR = mix(2300, 5, col);
+  const shut = prog(f, 0, 16, Easing.bezier(0.55, 0, 0.15, 1));
+  const retract = prog(f, 13, 26, E.inOut);
 
   // --- camera -----------------------------------------------------------------------
   const st = prog(f, L(CUE.straighten), L(CUE.straighten) + 64, E.inOut);
   const orbit = prog(f, 0, L(CUE.straighten) + 10, E.smooth);
-  const rx = mix(mix(48, 38, orbit), 0, st);
-  const rz = mix(mix(-26, -14, orbit), 0, st);
+  const rx = mix(mix(46, 36, orbit), 0, st);
+  const rz = mix(mix(-11, -5, orbit), 0, st);
   const s = mix(mix(1.75, 1.22, prog(f, 0, L(CUE.straighten), E.smooth)), APP_VIEW.s, st);
   const O = { x: mix(NOW_APP.x, CENTER_APP.x, st), y: mix(NOW_APP.y, CENTER_APP.y, st) };
-  const P = { x: mix(960, 960, st), y: mix(470, 540, st) };
+  const P = { x: mix(720, 960, st), y: mix(360, 540, st) };
 
   // --- blocks -----------------------------------------------------------------------
   const blocks: { ev: Ev; s: Parameters<typeof EventBlock>[0]['s']; key: string; shadow: { r: Rect; z: number } }[] = [];
@@ -96,10 +97,10 @@ export const Act4Plan: React.FC = () => {
       const rot = p.wob * lift * (1 - drop);
       const flash = f >= p.t2 ? Math.exp(-(f - p.t2) / 9) : 0;
       if (p.b!.kind !== p.a!.kind) {
-        blocks.push({ key: p.id + ':b', ev: p.b!, s: { rect, z, rot, opacity: 1 - prog(f, p.t1 + 10, p.t2 - 10), scale: 1 - bounce }, shadow: { r: rect, z } });
-        blocks.push({ key: p.id + ':a', ev: p.a!, s: { rect, z: z + 0.5, rot, opacity: prog(f, p.t1 + 10, p.t2 - 10), scale: 1 - bounce, glow: flash }, shadow: { r: rect, z: -1 } });
+        const zz = z + 60 * Math.sin(Math.PI * tp);
+        blocks.push({ key: p.id, ev: tp > 0.5 ? p.a! : p.b!, s: { rect, z: zz, rot, scale: 1 - bounce, inkT: prog(f, p.t1 + 8, p.t2 - 8, E.smooth), ring: flash }, shadow: { r: rect, z: zz } });
       } else {
-        blocks.push({ key: p.id, ev: tp > 0.5 ? p.a! : p.b!, s: { rect, z, rot, scale: 1 - bounce, glow: flash }, shadow: { r: rect, z } });
+        blocks.push({ key: p.id, ev: tp > 0.5 ? p.a! : p.b!, s: { rect, z, rot, scale: 1 - bounce, ring: flash }, shadow: { r: rect, z } });
       }
     } else if (rb) {
       // declined / moved to next week: rise and drift off to the right
@@ -109,12 +110,12 @@ export const Act4Plan: React.FC = () => {
       blocks.push({ key: p.id, ev: p.b!, s: { rect, z, rot: p.wob * lift + go * 8, opacity: 1 - prog(f, p.t1 + 22, p.t1 + 46) }, shadow: { r: rect, z } });
     } else if (ra) {
       // newcomers fall in from high above
-      const appear = prog(f, p.t2 - 30, p.t2 - 22);
-      const drop = prog(f, p.t2 - 30, p.t2, E.in);
-      const z = mix(650, 0, drop);
+      const appear = prog(f, p.t2 - 24, p.t2 - 16);
+      const drop = prog(f, p.t2 - 24, p.t2, E.in);
+      const z = mix(260, 0, drop);
       const bounce = f > p.t2 ? Math.exp(-(f - p.t2) / 4) * Math.sin((f - p.t2) / 1.6) * 0.05 : 0;
       const flash = f >= p.t2 ? Math.exp(-(f - p.t2) / 10) : 0;
-      if (appear > 0) blocks.push({ key: p.id, ev: p.a!, s: { rect: ra, z, opacity: appear, scale: 1 - bounce, glow: flash }, shadow: { r: ra, z } });
+      if (appear > 0) blocks.push({ key: p.id, ev: p.a!, s: { rect: ra, z, opacity: appear, scale: 1 - bounce, ring: flash }, shadow: { r: ra, z } });
     }
   }
 
@@ -142,8 +143,9 @@ export const Act4Plan: React.FC = () => {
     });
 
   // UI feedback once the week settles
+  const lastLanding = Math.max(...PLANS.filter((p) => p.a).map((p) => p.t2));
+  const resolved = prog(f, lastLanding + 2, lastLanding + 12, E.out);
   const done = prog(f, L(CUE.toast), L(CUE.toast) + 18, E.out);
-  const toastOut = prog(f, ACT.plan.dur - 14, ACT.plan.dur, E.in);
   const prioIn = [0, 1, 2].map((i) => prog(f, L(CUE.toast) + 4 + i * 5, L(CUE.toast) + 22 + i * 5, E.out));
 
   return (
@@ -157,64 +159,34 @@ export const Act4Plan: React.FC = () => {
           width: APP.W,
           height: APP.H,
           transformOrigin: `${O.x}px ${O.y}px`,
-          transform: `perspective(2600px) rotateX(${rx}deg) rotateZ(${rz}deg) scale(${s})`,
+          transform: `perspective(2600px) rotateZ(${rz}deg) rotateX(${rx}deg) scale(${s})`,
           transformStyle: 'preserve-3d',
         }}
       >
         <CalendarApp
-          events={blocks.map((b) => ({ ev: b.ev, s: b.s, key: b.key }))}
+          events={[...blocks].sort((a, b) => (a.s.z ?? 0) - (b.s.z ?? 0)).map((b) => ({ ev: b.ev, s: b.s, key: b.key }))}
           gridChildren={shadows}
-          clashes={7}
+          clashes={12}
           clashO={1}
-          resolved={done}
+          resolved={resolved}
+          status={done}
           prioIn={prioIn}
           noLiftShadow
         />
-        {/* toast */}
-        <div
-          style={{
-            position: 'absolute',
-            left: GRID.x + GRID.w / 2 - 170,
-            top: 960 - 64 - 28 - 62,
-            width: 340,
-            height: 46,
-            borderRadius: 23,
-            background: C.ink,
-            color: '#fff',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 10,
-            padding: '0 18px 0 14px',
-            boxSizing: 'border-box',
-            fontFamily: FONT.sans,
-            fontSize: 14.5,
-            fontWeight: 540,
-            letterSpacing: '-0.01em',
-            opacity: done * (1 - toastOut),
-            transform: `translateY(${(1 - done) * 16 + toastOut * 8}px) scale(${mix(0.94, 1, done)})`,
-            boxShadow: '0 12px 30px rgba(11,11,12,0.25)',
-          }}
-        >
-          <div style={{ width: 22, height: 22, borderRadius: 11, background: C.red, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <svg width={12} height={12} viewBox="0 0 16 16" fill="none" stroke="#fff" strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round">
-              <path d={ICON.check} />
-            </svg>
-          </div>
-          Week planned
-          <span style={{ color: 'rgba(255,255,255,0.5)', fontWeight: 460, marginLeft: 'auto' }}>14 moved · 0 clashes</span>
-        </div>
       </div>
-      {/* red field → dot */}
-      {redR > 6 && (
+      {/* red field → shutter → the now line → the dot (rolled with the camera) */}
+      {retract < 1 && (
         <div
           style={{
             position: 'absolute',
-            left: P.x - redR,
-            top: P.y - redR,
-            width: redR * 2,
-            height: redR * 2,
-            borderRadius: '50%',
+            left: P.x - mix(1400, 6, retract),
+            top: P.y - mix(1400, 1.5, shut),
+            width: mix(2800, 12, retract),
+            height: mix(2800, 3, shut),
+            borderRadius: retract > 0.9 ? 6 : 0,
             background: C.red,
+            transform: `rotate(${rz * shut}deg)`,
+            transformOrigin: `${mix(1400, 6, retract)}px ${mix(1400, 1.5, shut)}px`,
           }}
         />
       )}

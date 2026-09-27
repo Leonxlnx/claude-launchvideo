@@ -56,6 +56,8 @@ export type EvStyle = {
   scale?: number;
   rot?: number;
   glow?: number; // 0..1 red outline (clash)
+  ring?: number; // 0..1 ink outline ("just moved")
+  inkT?: number; // 0..1 morph from light (task/meeting) styling to focus (ink)
 };
 
 const kindStyle = (kind: Ev['kind']): React.CSSProperties => {
@@ -80,8 +82,18 @@ export const EventBlock: React.FC<{ ev: Ev; s: EvStyle; flat?: boolean; noLiftSh
   const z = s.z ?? 0;
   const short = rect.h < 40;
   const tiny = rect.h < 26;
-  const ks = kindStyle(ev.kind);
-  const dark = ev.kind === 'focus';
+  let ks = kindStyle(ev.kind);
+  let dark = ev.kind === 'focus';
+  if (s.inkT !== undefined) {
+    const k = s.inkT;
+    const c = (a: number, b: number) => Math.round(a + (b - a) * k);
+    ks = {
+      background: `rgb(${c(255, 11)},${c(255, 11)},${c(255, 12)})`,
+      color: k > 0.5 ? '#fff' : C.ink,
+      border: `1.5px solid ${C.ink}`,
+    };
+    dark = k > 0.5;
+  }
   const lift = Math.min(1, z / 120);
   return (
     <div
@@ -108,6 +120,7 @@ export const EventBlock: React.FC<{ ev: Ev; s: EvStyle; flat?: boolean; noLiftSh
               : 'none',
         ...ks,
         ...(s.glow && z <= 0.5 ? { boxShadow: `0 0 0 ${1.5 * s.glow}px rgba(236,42,58,${0.9 * s.glow})` } : {}),
+        ...(s.ring && z <= 0.5 ? { boxShadow: `0 0 0 ${2 * s.ring}px rgba(11,11,12,${0.85 * s.ring})` } : {}),
       }}
     >
       <div
@@ -123,9 +136,11 @@ export const EventBlock: React.FC<{ ev: Ev; s: EvStyle; flat?: boolean; noLiftSh
         {!tiny && (
           <span
             style={{
-              fontFamily: FONT.mono,
-              fontSize: 11,
-              letterSpacing: '0.01em',
+              fontFamily: FONT.sans,
+              fontVariantNumeric: 'tabular-nums',
+              fontSize: 11.5,
+              fontWeight: 460,
+              letterSpacing: '0',
               color: dark ? 'rgba(255,255,255,0.55)' : C.mute,
               lineHeight: 1.15,
             }}
@@ -169,8 +184,45 @@ export const CommandBar: React.FC<{
   press?: number; // 0..1 send button press
   width?: number;
   focus?: number; // 0..1 ring
-}> = ({ text, placeholder = 'Tell Tessel what matters…', caret, chipIn = [], press = 0, width = 700, focus = 0 }) => {
+  status?: number; // 0..1 result state
+}> = ({ text, placeholder = 'Tell Tessel what matters…', caret, chipIn = [], press = 0, width = 700, focus = 0, status = 0 }) => {
   const empty = text.length === 0 || text.every((t) => t.text.length === 0);
+  if (status > 0 && empty) {
+    return (
+      <div
+        style={{
+          width,
+          height: 64,
+          borderRadius: 32,
+          background: '#fff',
+          border: `1px solid ${C.line}`,
+          boxShadow: '0 18px 40px rgba(11,11,12,0.10), 0 2px 6px rgba(11,11,12,0.05)',
+          display: 'flex',
+          alignItems: 'center',
+          padding: '0 12px 0 22px',
+          gap: 14,
+          boxSizing: 'border-box',
+          fontFamily: FONT.sans,
+          position: 'relative',
+        }}
+      >
+        <Mark size={20} />
+        <div style={{ flex: 1, position: 'relative', height: 24, fontSize: 17, letterSpacing: '-0.012em' }}>
+          <span style={{ position: 'absolute', left: 0, top: 0, color: C.mute, opacity: 1 - status, transform: `translateY(${-status * 8}px)`, whiteSpace: 'nowrap' }}>{placeholder}</span>
+          <span style={{ position: 'absolute', left: 0, top: 0, display: 'flex', gap: 10, alignItems: 'center', opacity: status, transform: `translateY(${(1 - status) * 8}px)`, whiteSpace: 'nowrap' }}>
+            <span style={{ width: 22, height: 22, borderRadius: 11, background: C.ink, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Ico d={ICON.check} color="#fff" size={12} sw={2.4} />
+            </span>
+            <span style={{ color: C.ink, fontWeight: 560 }}>Week planned</span>
+            <span style={{ color: C.mute }}>20 moved · 14 to next week</span>
+          </span>
+        </div>
+        <div style={{ width: 42, height: 42, borderRadius: 21, background: C.red, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 12px rgba(236,42,58,0.28)', flexShrink: 0 }}>
+          <Ico d={ICON.up} color="#fff" size={18} sw={2} />
+        </div>
+      </div>
+    );
+  }
   return (
     <div
       style={{
@@ -204,10 +256,10 @@ export const CommandBar: React.FC<{
                   style={{
                     background: `rgba(11,11,12,${0.07 * (chipIn[i] ?? 0)})`,
                     borderRadius: 7,
-                    padding: '2px 5px',
-                    margin: '0 -5px 0 -5px',
+                    padding: '1px 6px',
+                    margin: '0 2px',
                     position: 'relative',
-                    fontWeight: 400 + 160 * (chipIn[i] ?? 0),
+                    fontWeight: 540,
                     whiteSpace: 'pre',
                     color: t.color,
                   }}
@@ -257,11 +309,11 @@ const PRIORITIES = [
 
 const Sidebar: React.FC<{ prioIn: number[] }> = ({ prioIn }) => {
   const weeks = [
-    [null, null, 1, 2, 3, 4, 5],
-    [6, 7, 8, 9, 10, 11, 12],
-    [13, 14, 15, 16, 17, 18, 19],
-    [20, 21, 22, 23, 24, 25, 26],
-    [27, 28, 29, 30, null, null, null],
+    [null, 1, 2, 3, 4, 5, 6],
+    [7, 8, 9, 10, 11, 12, 13],
+    [14, 15, 16, 17, 18, 19, 20],
+    [21, 22, 23, 24, 25, 26, 27],
+    [28, 29, 30, null, null, null, null],
   ];
   return (
     <div
@@ -298,14 +350,14 @@ const Sidebar: React.FC<{ prioIn: number[] }> = ({ prioIn }) => {
       </div>
       <div style={{ marginTop: 12, display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', rowGap: 4, fontSize: 11.5, textAlign: 'center' }}>
         {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((d, i) => (
-          <span key={i} style={{ color: C.mute, fontFamily: FONT.mono, fontSize: 10.5, paddingBottom: 4 }}>
+          <span key={i} style={{ color: C.mute, fontSize: 10.5, fontWeight: 500, paddingBottom: 4 }}>
             {d}
           </span>
         ))}
         {weeks.flatMap((w, wi) =>
           w.map((d, di) => {
             const inWeek = wi === 2 && di < 5;
-            const today = d === 16;
+            const today = d === DAYS[TODAY].date;
             return (
               <div
                 key={`${wi}-${di}`}
@@ -339,8 +391,8 @@ const Sidebar: React.FC<{ prioIn: number[] }> = ({ prioIn }) => {
         )}
       </div>
       {/* priorities */}
-      <div style={{ marginTop: 34, fontSize: 12.5, fontWeight: 560, color: C.mute }}>Priorities</div>
-      <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 4, minHeight: 120 }}>
+      <div style={{ marginTop: 34, fontSize: 12.5, fontWeight: 560, color: C.mute, opacity: Math.max(...prioIn) }}>Priorities</div>
+      <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 4, minHeight: 120 * Math.max(...prioIn) }}>
         {PRIORITIES.map((p, i) => {
           const t = prioIn[i] ?? 0;
           return (
@@ -361,7 +413,7 @@ const Sidebar: React.FC<{ prioIn: number[] }> = ({ prioIn }) => {
             >
               <div style={{ width: 8, height: 8, borderRadius: 2.5, background: C.ink, flexShrink: 0 }} />
               <span style={{ fontSize: 13, fontWeight: 540, flex: 1, whiteSpace: 'nowrap' }}>{p.label}</span>
-              <span style={{ fontSize: 11, color: C.mute, fontFamily: FONT.mono, whiteSpace: 'nowrap' }}>{p.meta}</span>
+              <span style={{ fontSize: 11.5, color: C.mute, fontWeight: 460, whiteSpace: 'nowrap' }}>{p.meta}</span>
             </div>
           );
         })}
@@ -480,7 +532,7 @@ const DayHeader: React.FC = () => (
   >
     {DAYS.map((d, i) => (
       <div key={d.dow} style={{ width: COL, display: 'flex', alignItems: 'center', gap: 9, padding: '0 14px', boxSizing: 'border-box' }}>
-        <span style={{ fontFamily: FONT.mono, fontSize: 11.5, color: i === TODAY ? C.ink : C.mute, letterSpacing: '0.02em' }}>{d.dow}</span>
+        <span style={{ fontSize: 13, fontWeight: 500, color: i === TODAY ? C.ink : C.mute }}>{d.dow}</span>
         <span
           style={{
             fontSize: 17,
@@ -537,8 +589,10 @@ const Gutter: React.FC = () => {
             position: 'absolute',
             right: 12,
             top: (h - H0) * HOUR - 7,
-            fontFamily: FONT.mono,
-            fontSize: 11,
+            fontFamily: FONT.sans,
+            fontVariantNumeric: 'tabular-nums',
+            fontSize: 11.5,
+            fontWeight: 460,
             color: C.mute,
           }}
         >
@@ -549,14 +603,14 @@ const Gutter: React.FC = () => {
   );
 };
 
-export const NowLine: React.FC<{ t?: number; o?: number; now?: number }> = ({ t = 1, o = 1, now = NOW }) => {
+export const NowLine: React.FC<{ t?: number; o?: number; now?: number; part?: 'faint' | 'strong'; dotO?: number }> = ({ t = 1, o = 1, now = NOW, part = 'strong', dotO }) => {
   const y = (now - H0) * HOUR;
+  if (part === 'faint')
+    return <div style={{ position: 'absolute', left: 0, top: y, width: GRID.w * t, height: 1, background: `rgba(236,42,58,${0.28 * o})` }} />;
   return (
     <>
-      {/* faint across the week, strong across today */}
-      <div style={{ position: 'absolute', left: 0, top: y, width: GRID.w * t, height: 1, background: `rgba(236,42,58,${0.28 * o})` }} />
       <div style={{ position: 'absolute', left: TODAY * COL, top: y - 0.75, width: COL * t, height: 2, background: C.red, opacity: o }} />
-      <div style={{ position: 'absolute', left: TODAY * COL - 5, top: y - 5, width: 10, height: 10, borderRadius: 5, background: C.red, opacity: o }} />
+      <div style={{ position: 'absolute', left: TODAY * COL - 6, top: y - 6, width: 12, height: 12, borderRadius: 6, background: C.red, opacity: dotO ?? o }} />
     </>
   );
 };
@@ -569,9 +623,10 @@ const NowLabel: React.FC<{ o?: number; now?: number }> = ({ o = 1, now = NOW }) 
       top: GRID.y + (now - H0) * HOUR - 10,
       background: C.red,
       color: '#fff',
-      fontFamily: FONT.mono,
-      fontSize: 11,
-      fontWeight: 500,
+      fontFamily: FONT.sans,
+      fontVariantNumeric: 'tabular-nums',
+      fontSize: 11.5,
+      fontWeight: 600,
       borderRadius: 6,
       padding: '3px 6px',
       opacity: o,
@@ -602,6 +657,9 @@ export type AppProps = {
   clashO?: number;
   resolved?: number;
   now?: number; // override the current time (hours)
+  frame?: number; // 0..1 window surface + shadow
+  lineT?: number; // 0..1 how far the now line has drawn out of its dot
+  status?: number; // 0..1 command bar shows the result instead of the placeholder
   overlay?: React.ReactNode; // extra layers in app space
   shadow?: boolean;
 };
@@ -626,6 +684,9 @@ export const CalendarApp: React.FC<AppProps> = ({
   resolved,
   noLiftShadow,
   now = NOW,
+  frame = 1,
+  status = 0,
+  lineT = 1,
 }) => (
   <div
     style={{
@@ -633,10 +694,10 @@ export const CalendarApp: React.FC<AppProps> = ({
       width: APP.W,
       height: APP.H,
       borderRadius: APP.R,
-      background: '#fff',
+      background: `rgba(255,255,255,${frame})`,
       boxShadow: shadow
-        ? '0 0 0 1px rgba(11,11,12,0.06), 0 40px 80px -20px rgba(11,11,12,0.18), 0 12px 30px -10px rgba(11,11,12,0.10)'
-        : '0 0 0 1px rgba(11,11,12,0.06)',
+        ? `0 0 0 1px rgba(11,11,12,${0.06 * frame}), 0 40px 80px -20px rgba(11,11,12,${0.18 * frame}), 0 12px 30px -10px rgba(11,11,12,${0.1 * frame})`
+        : `0 0 0 1px rgba(11,11,12,${0.06 * frame})`,
       overflow: 'visible',
       transformStyle: 'preserve-3d',
     }}
@@ -659,11 +720,12 @@ export const CalendarApp: React.FC<AppProps> = ({
       }}
     >
       <GridLines />
+      <NowLine o={nowO} now={now} part="faint" t={lineT} />
       {gridChildren}
       {events.map(({ ev, s, key }) => (
         <EventBlock key={key ?? ev.id} ev={ev} s={s} flat={flat} noLiftShadow={noLiftShadow} />
       ))}
-      <NowLine o={nowO} now={now} />
+      <NowLine o={nowO} now={now} t={lineT} dotO={nowO > 0 || lineT < 1 ? 1 : 0} />
     </div>
     {!hideBar && (
       <div
@@ -674,7 +736,7 @@ export const CalendarApp: React.FC<AppProps> = ({
           opacity: chrome,
         }}
       >
-        <CommandBar text={prompt} caret={caret} chipIn={chipIn} press={press} focus={barFocus} />
+        <CommandBar text={prompt} caret={caret} chipIn={chipIn} press={press} focus={barFocus} status={status} />
       </div>
     )}
     {overlay}

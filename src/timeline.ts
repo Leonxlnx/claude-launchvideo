@@ -30,15 +30,15 @@ export const CUE = {
   implodeStart: b(3, 3),
   silence: b(3, 3, 2),
   drop1: b(4), // mark assembles
-  lockup: b(4, 2),
+  lockup: b(4, 1, 2),
   descriptor: b(5),
-  flyIn: b(5, 2, 2),
+  flyIn: b(5, 2),
   appSettle: b(6),
   zoomBar: b(6, 1),
   typeStart: b(6, 2),
   typeEnd: b(7, 2),
   click: b(7, 3),
-  redFill: b(7, 3, 2),
+  redFill: b(7, 3, 0.5),
   drop2: b(8), // the fitting
   landingsFrom: b(8, 1),
   landingsTo: b(9, 1),

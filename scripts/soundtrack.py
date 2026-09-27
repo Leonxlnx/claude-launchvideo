@@ -565,7 +565,7 @@ def build_sfx():
     for i, f0 in enumerate([587.33, 783.99]):  # "Your" "week"
         place(fx, blip(f0), fr(c['yourWeek'] + i * 9 + 3), 0.09)
     for i in range(5):  # "The calendar that plans itself."
-        place(fx, blip([783.99, 880, 987.77, 1174.66, 1318.5][i]), fr(c['descriptor'] - 20 + i * 5 + 3), 0.035, pan=(i - 2) / 6)
+        place(fx, blip([783.99, 880, 987.77, 1174.66, 1318.5][i]), fr(c['lockup'] + 22 + i * 5 + 3), 0.035, pan=(i - 2) / 6)
     place(fx, riser(1.9, 200, 6000, True, 53), fr(c['yourWeek']) + 0.1, 0.20)
     place(fx, sub_boom(2.2, 58, 38), fr(c['doesntFit']), 0.55)
     place(fx, clap(0.5), fr(c['doesntFit']), 0.35)
@@ -590,7 +590,7 @@ def build_sfx():
     place(fx, whoosh(0.5, 400, 2600, 700, 0.6, 0.4), fr(s['macroWhoosh']), 0.12)
     place(fx, riser(1.6, 250, 9000, True, 56), fr(c['click']) - 1.1, 0.22)
     place(fx, ui_click(), fr(s['click']), 0.60)
-    place(fx, whoosh(0.3, 300, 5000, 2000, 0.9, 0.3), fr(s['flood']), 0.26)
+    place(fx, whoosh(0.3, 300, 5000, 2000, 0.9, 0.3), fr(c['redFill']), 0.26)
 
     # Act 4 — drop 2: the fitting
     place(fx, sub_boom(2.4, 62, 38), fr(c['drop2']), 0.70)
@@ -625,12 +625,13 @@ def build_sfx():
     place(fx, whoosh(0.7, 300, 2000, 400, 0.5, 0.6), fr(s['backToWeek']), 0.12)
 
     # Act 6 — pull back, the fit, lockup
-    place(fx, whoosh(2.2, 150, 1200, 250, 0.4, 1.0), fr(s['pullBack']), 0.18)
+    place(fx, whoosh(2.0, 150, 1200, 250, 0.18, 1.0), fr(s['pullBack']) - 0.12, 0.2)
     place(fx, riser(3.4, 150, 7000, True, 51), fr(c['converge']) - 1.5, 0.16)
     place(fx, whoosh(0.4, 300, 2500, 800, 0.8, -0.8), fr(s['wordsIn']), 0.10)
     place(fx, whoosh(0.4, 300, 2500, 800, 0.8, 0.8), fr(s['wordsIn']), 0.10)
     place(fx, snap(0.8, 1.2), fr(s['fitsSnap']), 0.55)
     place(fx, sub_boom(3.0, 55, 34), fr(s['fitsSnap']), 0.60)
+    place(fx, tock(420, 0.3, 0.06, 1.0), fr(s['wordsFill']), 0.16)
     place(fx, snap(0.6, 0.8), fr(s['markSnap2A']), 0.34, pan=-0.2)
     place(fx, snap(0.6, 0.9), fr(s['markSnap2B']), 0.36, pan=0.2)
     place(fx, whoosh(0.55, 500, 3500, 1200, 0.35, 0.6), fr(s['lockup2']), 0.09)

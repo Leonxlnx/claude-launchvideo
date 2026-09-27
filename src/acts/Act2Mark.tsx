@@ -43,7 +43,7 @@ export const Act2Mark: React.FC = () => {
 
   const lk = prog(f, L(CUE.lockup), L(CUE.lockup) + 34, E.inOut);
   const hold = prog(f, L(CUE.lockup) + 34, L(CUE.flyIn), E.smooth); // slow drift while we read
-  const size = mix(M0, M1, lk) * mix(1, 1.025, hold);
+  const size = mix(M0, M1, lk) * mix(1, 1.05, hold);
   const mx = mix(960 - M0 / 2, lockX, lk) - (size - M1) * 0.5 * lk;
   const my = 540 - size / 2 - 8 * lk;
   const u = size / 100; // px per mark unit
@@ -53,13 +53,13 @@ export const Act2Mark: React.FC = () => {
   const punch = pt > 0 && pt < 1 ? 1 + 0.04 * Math.sin(pt * Math.PI) : 1;
 
   // piece entry springs
-  const sa = spr(f, 4, { damping: 17, stiffness: 210, mass: 0.8 });
+  const sa = spr(f, 8, { damping: 17, stiffness: 230, mass: 0.8 });
   const sb = spr(f, 10, { damping: 17, stiffness: 210, mass: 0.8 });
 
   // --- fly into the app ---------------------------------------------------------------
   const flyS = L(CUE.flyIn);
   const fly = prog(f, flyS, ACT.mark.dur - 14, E.inOut);
-  const appIn = prog(f, ACT.mark.dur - 18, ACT.mark.dur - 1, E.smooth);
+  const appIn = prog(f, L(CUE.flyIn) + 6, ACT.mark.dur - 12, E.smooth);
   const V = APP_VIEW;
   const winR: R = { x: V.x, y: V.y, w: APP.W * V.s, h: APP.H * V.s };
   const sideR: R = { x: V.x, y: V.y, w: APP.side * V.s, h: APP.H * V.s };
@@ -76,10 +76,11 @@ export const Act2Mark: React.FC = () => {
 
   // dot: center → mark slot → app "now" (tracked inside the morphing window so it never strays)
   const sd = spr(f, 2, { damping: 16, stiffness: 190, mass: 0.7 });
+  const dotFly = prog(f, flyS + 10, ACT.mark.dur - 4, E.inOut);
   const inMark = {
-    x: U.x + mix(MARK.D.cx / 100, DOT_APP.x, fly) * U.w,
-    y: U.y + mix(MARK.D.cy / 100, DOT_APP.y, fly) * U.h,
-    r: mix(MARK.D.r * u, 5 * V.s, fly),
+    x: U.x + mix(MARK.D.cx / 100, DOT_APP.x, dotFly) * U.w,
+    y: U.y + mix(MARK.D.cy / 100, DOT_APP.y, dotFly) * U.h,
+    r: mix(MARK.D.r * u, 6 * V.s, fly),
   };
   const dot = {
     x: mix(960, inMark.x, sd),
@@ -88,7 +89,7 @@ export const Act2Mark: React.FC = () => {
   };
 
   // wordmark + descriptor
-  const wordOut = prog(f, flyS - 6, flyS + 12, E.in);
+  const wordOut = prog(f, flyS - 16, flyS + 2, E.out);
   const wordIn = prog(f, L(CUE.lockup) + 14, L(CUE.lockup) + 50, E.out);
   const sideTone = mix(255, 250, fly);
 
@@ -113,46 +114,56 @@ export const Act2Mark: React.FC = () => {
         }}
       />
 
-      {/* wordmark: slides out from behind the mark (drawn first, so the mark covers it) */}
-      <div
-        style={{
-          position: 'absolute',
-          left: lockX + M1 + gap - 6,
-          top: 540 - WORD.size * 0.66,
-          height: WORD.size * 1.25,
-          width: wm.width + 60,
-          overflow: 'hidden',
-          display: 'flex',
-          alignItems: 'center',
-          opacity: 1 - wordOut,
-          filter: `blur(${wordOut * 12}px)`,
-        }}
-      >
-        <span
-          style={{
-            display: 'inline-block',
-            fontFamily: FONT.sans,
-            fontSize: WORD.size,
-            fontWeight: WORD.weight,
-            letterSpacing: `${WORD.track + (1 - wordIn) * 0.03}em`,
-            color: '#fff',
-            lineHeight: 1,
-            whiteSpace: 'nowrap',
-            paddingLeft: 6,
-            transform: `translateX(${(1 - wordIn) * -(wm.width + 30)}px) scale(${mix(1, 1.012, hold)})`,
-            transformOrigin: 'left center',
-            filter: `blur(${(1 - wordIn) * 5}px)`,
-          }}
-        >
-          tessel
-        </span>
-      </div>
+      {/* wordmark: slides out from behind the mark; the clip window follows the live mark edge */}
+      {(() => {
+        const finalLeft = lockX + M1 + gap;
+        const cl = Math.max(finalLeft - 6, mx + size + gap * (size / M1) - 6);
+        const right = finalLeft + wm.width + 60;
+        return (
+          <div
+            style={{
+              position: 'absolute',
+              left: cl,
+              top: 540 - WORD.size * 0.66,
+              height: WORD.size * 1.25,
+              width: Math.max(0, right - cl),
+              overflow: 'hidden',
+              opacity: 1 - wordOut,
+              filter: `blur(${wordOut * 12}px)`,
+            }}
+          >
+            <span
+              style={{
+                position: 'absolute',
+                left: finalLeft - cl,
+                top: 0,
+                height: WORD.size * 1.25,
+                display: 'flex',
+                alignItems: 'center',
+                fontFamily: FONT.sans,
+                fontSize: WORD.size,
+                fontWeight: WORD.weight,
+                letterSpacing: `${WORD.track}em`,
+                color: '#fff',
+                lineHeight: 1,
+                whiteSpace: 'nowrap',
+                transform: `translateX(${(1 - wordIn) * -(wm.width + 90)}px) scale(${mix(1, 1.012, hold)})`,
+                transformOrigin: 'left center',
+                filter: `blur(${(1 - wordIn) * 5}px)`,
+                opacity: wordIn > 0.001 ? 1 : 0,
+              }}
+            >
+              tessel
+            </span>
+          </div>
+        );
+      })()}
       <div
         style={{
           position: 'absolute',
           left: 0,
           width: 1920,
-          top: 540 + 116,
+          top: 540 + 116 - 14 * hold,
           textAlign: 'center',
           fontFamily: FONT.sans,
           fontSize: 44,
@@ -167,6 +178,19 @@ export const Act2Mark: React.FC = () => {
 
       {/* the mark (punch applies to the whole assembly) */}
       <AbsoluteFill style={{ transform: `scale(${punch})`, transformOrigin: '960px 540px' }}>
+        {fly > 0 && (
+          <div
+            style={{
+              position: 'absolute',
+              left: U.x,
+              top: U.y,
+              width: U.w,
+              height: U.h,
+              borderRadius: mix(rPiece, rWin, fly),
+              boxShadow: `0 ${40 * fly}px ${90 * fly}px rgba(0,0,0,${0.4 * fly})`,
+            }}
+          />
+        )}
         {/* piece A (tall) → sidebar */}
         <div
           style={{
@@ -184,35 +208,50 @@ export const Act2Mark: React.FC = () => {
         <div
           style={{
             position: 'absolute',
-            left: B.x,
+            left: B.x - 2 * fly,
             top: B.y,
-            width: B.w,
+            width: B.w + 2 * fly,
             height: B.h,
             background: '#fff',
             borderRadius: `${mix(rPiece, 0, fly)}px ${mix(rPiece, rWin, fly)}px ${mix(rPiece, rWin, fly)}px ${mix(rPiece, 0, fly)}px`,
             transform: `translate(${(1 - sb) * 150}px, ${(1 - sb) * -760}px) rotate(${(1 - sb) * 10}deg)`,
-            boxShadow: fly > 0 ? `0 ${40 * fly}px ${90 * fly}px rgba(0,0,0,${0.4 * fly})` : 'none',
           }}
         />
 
-        {/* the product fades up inside the two pieces */}
-        {appIn > 0 && (
-          <div
-            style={{
-              position: 'absolute',
-              left: V.x,
-              top: V.y,
-              width: APP.W,
-              height: APP.H,
-              transform: `scale(${V.s})`,
-              transformOrigin: '0 0',
-              opacity: appIn,
-            }}
-          >
-            <CalendarApp events={[]} nowO={0} shadow={false} />
-          </div>
-        )}
-
+        {/* the product shows through inside the two pieces as they open (each piece is a mask) */}
+        {appIn > 0 &&
+          [
+            { r: A, rad: `${mix(rPiece, rWin, fly)}px ${mix(rPiece, 0, fly)}px ${mix(rPiece, 0, fly)}px ${mix(rPiece, rWin, fly)}px` },
+            { r: { ...B, x: B.x - 2 * fly, w: B.w + 2 * fly }, rad: `${mix(rPiece, 0, fly)}px ${mix(rPiece, rWin, fly)}px ${mix(rPiece, rWin, fly)}px ${mix(rPiece, 0, fly)}px` },
+          ].map(({ r, rad }, i) => (
+            <div
+              key={i}
+              style={{
+                position: 'absolute',
+                left: r.x,
+                top: r.y,
+                width: r.w,
+                height: r.h,
+                borderRadius: rad,
+                overflow: 'hidden',
+                opacity: appIn,
+              }}
+            >
+              <div
+                style={{
+                  position: 'absolute',
+                  left: V.x - r.x,
+                  top: V.y - r.y,
+                  width: APP.W,
+                  height: APP.H,
+                  transform: `scale(${V.s})`,
+                  transformOrigin: '0 0',
+                }}
+              >
+                <CalendarApp events={[]} nowO={0} shadow={false} />
+              </div>
+            </div>
+          ))}
         {/* the dot, always on top */}
         <div
           style={{

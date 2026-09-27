@@ -1,5 +1,6 @@
 import { rand } from '../lib/anim';
 import { CUE } from '../timeline';
+import { NOW } from '../app/data';
 
 // The opening "rain" of meetings. Landing frames accelerate like a drum roll,
 // so the soundtrack can place one tick per landing (exported with the cues).
@@ -11,12 +12,12 @@ const TITLES = [
   'Quick chat', 'Follow-up', 'Metrics', 'Handoff', 'Launch sync', 'Catch-up',
 ];
 
-export const RAIN_N = 46;
+export const RAIN_N = 60;
 export const ACT1 = {
   colW: 1920 / 7,
   hourH: 120,
   nowY: 540,
-  now: 10.4,
+  now: NOW,
 };
 
 export type RainBlock = {
@@ -32,17 +33,17 @@ export type RainBlock = {
   rot: number; // deg, while falling
 };
 
-// accelerating schedule: t in [0,1] → frame, dense toward the end
+// accelerating schedule: t in [0,1] → frame; gaps shrink toward the implosion (a drum roll)
 const schedule = (k: number) => {
   const t = k / (RAIN_N - 1);
-  const eased = 1 - Math.pow(1 - t, 0.55);
-  return Math.round(CUE.rainStart + eased * (CUE.implodeStart - 8 - CUE.rainStart));
+  const eased = Math.pow(t, 0.58);
+  return Math.round(CUE.rainStart + eased * (CUE.implodeStart - 2 - CUE.rainStart));
 };
 
 export const RAIN: RainBlock[] = Array.from({ length: RAIN_N }, (_, i) => {
   const r = (n: number) => rand(`rain-${i}-${n}`);
   const day = Math.floor(r(1) * 7);
-  const start = 6.5 + Math.floor(r(2) * 16) * 0.5; // 06:30 .. 14:00
+  const start = 5.5 + Math.floor(r(2) * 15) * 0.5; // 05:30 .. 12:30
   const dur = [0.5, 0.75, 1, 1, 1.5][Math.floor(r(3) * 5)];
   return {
     i,

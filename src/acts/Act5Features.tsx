@@ -4,7 +4,7 @@ import { C, FONT } from '../brand/tokens';
 import { E, mix, prog, spr } from '../lib/anim';
 import { ACT, CUE } from '../timeline';
 import { APP, CalendarApp, COL, EvStyle, evRect, GRID, HOUR, ICON } from '../app/CalendarApp';
-import { AFTER, Ev, H0 } from '../app/data';
+import { AFTER, Ev, FINAL, H0, NOW } from '../app/data';
 import { APP_VIEW } from './Act2Mark';
 
 // ACT 5 — three things it keeps doing. The app window shrinks into a card on the right
@@ -25,14 +25,15 @@ const region = (d0: number, d1: number, h0: number, h1: number): Box => ({
   w: (d1 - d0) * COL,
   h: (h1 - h0) * HOUR,
 });
-const CARD: Box = { x: 930, y: 170, w: 860, h: 740 };
+const CARD: Box = { x: 900, y: 120, w: 940, h: 840 };
 const FULL: Box = { x: APP_VIEW.x, y: APP_VIEW.y, w: APP.W * APP_VIEW.s, h: APP.H * APP_VIEW.s };
 const lerpB = (a: Box, b: Box, t: number): Box => ({ x: mix(a.x, b.x, t), y: mix(a.y, b.y, t), w: mix(a.w, b.w, t), h: mix(a.h, b.h, t) });
 
 // app-space box that the card shows, per feature
+// crops are aligned to column gutters so no half-cut blocks hang on the card edge
 const R1 = region(3, 5, 12.85, 17.3); // Thu–Fri afternoon
-const R2 = region(2.55, 4.75, 8.75, 13.2); // Thu morning, centered
-const R3 = region(1.5, 3.5, 12.7, 17.6); // Wed afternoon (centered)
+const R2 = region(3, 5, 8.75, 13.2); // Thu–Fri morning
+const R3 = region(-0.3, 2, 12.7, 17.7); // Mon–Tue afternoon (today), with the hour gutter
 const RFULL: Box = { x: 0, y: 0, w: APP.W, h: APP.H };
 
 const fit = (r: Box, card: { w: number; h: number }, zoom = 1) => {
@@ -41,14 +42,14 @@ const fit = (r: Box, card: { w: number; h: number }, zoom = 1) => {
 };
 
 // --------------------------------------------------------------------------------------
-const Avatar: React.FC<{ i: string; check: number; x: number }> = ({ i, check, x }) => (
-  <div style={{ position: 'absolute', left: x, top: 0, width: 26, height: 26 }}>
+const Avatar: React.FC<{ i: string; check: number; x: number; z: number }> = ({ i, check, x, z }) => (
+  <div style={{ position: 'absolute', left: x, top: 0, width: 26, height: 26, zIndex: z }}>
     <div
       style={{
         width: 26,
         height: 26,
         borderRadius: 13,
-        background: '#fff',
+        background: '#E4E5E9',
         border: '2px solid #F0F1F3',
         boxSizing: 'border-box',
         display: 'flex',
@@ -71,11 +72,12 @@ const Avatar: React.FC<{ i: string; check: number; x: number }> = ({ i, check, x
         height: 13,
         borderRadius: 7,
         background: C.ink,
-        border: '1.5px solid #fff',
+        border: '1.5px solid #F0F1F3',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
         transform: `scale(${check})`,
+        zIndex: 20,
       }}
     >
       <svg width={8} height={8} viewBox="0 0 16 16" fill="none" stroke="#fff" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round">
@@ -90,13 +92,15 @@ export const Act5Features: React.FC = () => {
 
   // ---- card morph from the full window ---------------------------------------------
   const into = prog(f, 0, 44, E.inOut);
-  const back = prog(f, ACT.feat.dur - 34, ACT.feat.dur, E.inOut);
+  const back = prog(f, ACT.feat.dur - 36, ACT.feat.dur, E.glide);
   const card = lerpB(lerpB(FULL, CARD, into), FULL, back);
   // which region the card shows (continuous camera between features)
   const toR2 = prog(f, F2 - 14, F2 + 20, E.inOut);
   const toR3 = prog(f, F3 - 14, F3 + 20, E.inOut);
   const rNow = lerpB(lerpB(lerpB(lerpB(RFULL, R1, into), R2, toR2), R3, toR3), RFULL, back);
-  const drift = mix(mix(1, 1.04, f / ACT.feat.dur), 1, back);
+  const drift = mix(mix(1, 1.07, f / ACT.feat.dur), 1, back);
+  const bump = (at: number) => (f >= at && f < at + 14 ? Math.sin(((f - at) / 14) * Math.PI) : 0);
+  const cardPunch = 1 + 0.015 * (bump(F1 + 76) + bump(F2 + 44) + bump(F3 + 26));
   const cam = fit(rNow, card, drift);
 
   // ---- events per feature -------------------------------------------------------------
@@ -105,13 +109,15 @@ export const Act5Features: React.FC = () => {
   const lift1 = prog(f, F1 + 30, F1 + 42, E.out);
   const move1 = prog(f, F1 + 40, F1 + 76, E.inOut);
   const land1 = prog(f, F1 + 70, F1 + 76, E.in);
-  // feature 3: time-lapse to the afternoon, All-hands overruns by 30 min, the rest of Wed shifts
-  const nowT = mix(mix(10.4, 13.97, prog(f, F3 - 6, F3 + 26, E.inOut)), 14.3, prog(f, F3 + 26, ACT.feat.dur, E.linear));
+  // feature 3: time-lapse to the afternoon; the design review overruns 30 min and Monday re-flows.
+  // Times are interpolated and rounded to 5 minutes, so the labels roll with the blocks.
+  const nowT = mix(mix(NOW, 13.97, prog(f, F3 - 6, F3 + 26, E.inOut)), 14.3, prog(f, F3 + 26, ACT.feat.dur, E.linear));
   const late = prog(f, F3 + 26, F3 + 64, E.inOut);
   const shift = prog(f, F3 + 34, F3 + 80, E.inOut);
+  const r5 = (h: number) => Math.round(h * 12) / 12;
 
   for (const e of AFTER) {
-    let r = evRect(e);
+    const r = evRect(e);
     const s: EvStyle = { rect: r };
     if (e.id === 'th-road') {
       const target = evRect({ ...e, day: 4, start: 15, end: 16 });
@@ -119,21 +125,20 @@ export const Act5Features: React.FC = () => {
       s.z = (lift1 * 40 + Math.sin(Math.PI * move1) * 20) * (1 - land1);
       s.scale = 1 + 0.04 * lift1 * (1 - land1);
       s.rot = -2.5 * lift1 * (1 - land1);
-      s.glow = prog(f, F1 + 74, F1 + 78) * (1 - prog(f, F1 + 90, F1 + 112, E.smooth));
+      s.ring = prog(f, F1 + 74, F1 + 78) * (1 - prog(f, F1 + 90, F1 + 112, E.smooth));
       styled.push({ ev: { ...e, start: mix(14, 15, move1 > 0.5 ? 1 : 0), end: mix(15, 16, move1 > 0.5 ? 1 : 0) }, s });
       continue;
     }
-    if (e.day === 2 && e.start >= 13) {
-      if (e.id === 'we-all') {
-        const extra = late * 0.5 * HOUR;
-        s.rect = { ...r, h: r.h + extra };
-        s.glow = prog(f, F3 + 26, F3 + 34) * (1 - prog(f, F3 + 70, F3 + 90));
-      } else {
-        const dy = shift * 0.5 * HOUR;
-        // the last block absorbs the squeeze so the day still ends on time
-        if (e.id === 'we-qbr') s.rect = { ...r, y: r.y + dy, h: r.h - dy * 0.6 };
-        else s.rect = { ...r, y: r.y + dy };
-      }
+    const fin = FINAL.find((x) => x.id === e.id)!;
+    if (e.day === 0 && (fin.start !== e.start || fin.end !== e.end)) {
+      const t = e.id === 'mo-design' ? late : shift;
+      const start = r5(mix(e.start, fin.start, t));
+      const end = r5(mix(e.end, fin.end, t));
+      const moved = { ...e, start, end };
+      const rr = evRect({ ...e, start: mix(e.start, fin.start, t), end: mix(e.end, fin.end, t) });
+      if (e.id === 'mo-design') s.glow = prog(f, F3 + 26, F3 + 34) * (1 - prog(f, F3 + 70, F3 + 90));
+      styled.push({ ev: moved, s: { ...s, rect: rr } });
+      continue;
     }
     styled.push({ ev: e, s });
   }
@@ -155,7 +160,7 @@ export const Act5Features: React.FC = () => {
   const invO = prog(f, F2 + 12, F2 + 20) * (1 - prog(f, F2 + 90, F2 + 104));
 
   // feature 3 "+30 min" tag
-  const all = styled.find((x) => x.ev.id === 'we-all')!.s.rect;
+  const all = styled.find((x) => x.ev.id === 'mo-design')!.s.rect;
   const lateO = prog(f, F3 + 30, F3 + 40) * (1 - prog(f, ACT.feat.dur - 24, ACT.feat.dur - 8));
 
   const overlay = (
@@ -163,7 +168,7 @@ export const Act5Features: React.FC = () => {
       {/* F1 attendees */}
       <div style={{ position: 'absolute', left: road.x + 12, top: road.y + road.h - 34, height: 26, width: 120, opacity: avatarsO }}>
         {['MR', 'JL', 'PS', 'AK'].map((a, i) => (
-          <Avatar key={a} i={a} check={checks[i]} x={i * 20} />
+          <Avatar key={a} i={a} check={checks[i]} x={i * 22} z={10 - i} />
         ))}
       </div>
       {/* F2 shield label on focus */}
@@ -208,7 +213,7 @@ export const Act5Features: React.FC = () => {
         }}
       >
         <div style={{ fontSize: 13.5, fontWeight: 600, color: C.ink }}>Quick sync?</div>
-        <div style={{ fontFamily: FONT.mono, fontSize: 11, color: C.mute, marginTop: 3 }}>Leo · Thu 10:30</div>
+        <div style={{ fontFamily: FONT.sans, fontVariantNumeric: 'tabular-nums', fontSize: 12, fontWeight: 460, color: C.mute, marginTop: 3 }}>Leo · Thu 10:30</div>
         <div
           style={{
             marginTop: 10,
@@ -240,15 +245,16 @@ export const Act5Features: React.FC = () => {
       <div
         style={{
           position: 'absolute',
-          left: all.x + all.w - 92,
+          left: all.x + all.w - 70,
           top: all.y + 8,
           padding: '3px 8px',
           borderRadius: 6,
           background: C.red,
           color: '#fff',
-          fontFamily: FONT.mono,
-          fontSize: 11,
-          fontWeight: 500,
+          fontFamily: FONT.sans,
+          fontVariantNumeric: 'tabular-nums',
+          fontSize: 11.5,
+          fontWeight: 600,
           opacity: lateO,
           transform: `scale(${mix(0.8, 1, lateO)})`,
         }}
@@ -259,15 +265,15 @@ export const Act5Features: React.FC = () => {
   );
 
   // ---- drum of lines --------------------------------------------------------------------
-  const step = prog(f, F2 - 10, F2 + 14, E.out) + prog(f, F3 - 10, F3 + 14, E.out);
-  const drumIn = prog(f, 8, 40, E.out);
+  const step = toR2 + toR3;
+  const drumIn = prog(f, 26, 54, E.out);
   const drumOut = prog(f, ACT.feat.dur - 40, ACT.feat.dur - 14, E.in);
 
   return (
     <AbsoluteFill style={{ background: '#fff', overflow: 'hidden' }}>
       <AbsoluteFill style={{ background: '#E7E8EC', opacity: 1 - prog(f, 0, 36, E.smooth) }} />
       {/* drum — a 2D cylinder projection: no perspective shear, so no fake italics */}
-      <div style={{ position: 'absolute', left: 130, top: 540, width: 800, height: 0, opacity: drumIn * (1 - drumOut) }}>
+      <div style={{ position: 'absolute', left: 110, top: 540, width: 780, height: 0, opacity: drumIn * (1 - drumOut) }}>
         {LINES.map((line, i) => {
           const d = i - step - (1 - drumIn) * -1.2;
           const ang = Math.max(-80, Math.min(80, d * 30)) * (Math.PI / 180);
@@ -286,9 +292,9 @@ export const Act5Features: React.FC = () => {
                 display: 'flex',
                 alignItems: 'center',
                 fontFamily: FONT.sans,
-                fontSize: 84,
+                fontSize: 80,
                 fontWeight: 600,
-                letterSpacing: '-0.045em',
+                letterSpacing: '-0.05em',
                 whiteSpace: 'nowrap',
                 color: `rgb(${c},${c},${Math.round(mix(196, 12, active))})`,
                 transformOrigin: '0 50%',
@@ -314,6 +320,7 @@ export const Act5Features: React.FC = () => {
           overflow: 'hidden',
           background: '#fff',
           boxShadow: '0 0 0 1px rgba(11,11,12,0.06), 0 40px 80px -20px rgba(11,11,12,0.18), 0 12px 30px -10px rgba(11,11,12,0.10)',
+          transform: `scale(${cardPunch})`,
 
         }}
       >
@@ -328,7 +335,7 @@ export const Act5Features: React.FC = () => {
             transform: `translate(${cam.x}px, ${cam.y}px) scale(${cam.k})`,
           }}
         >
-          <CalendarApp events={styled} overlay={overlay} shadow={false} clashes={0} clashO={1} resolved={1} prioIn={[1, 1, 1]} nowO={1} now={nowT} />
+          <CalendarApp events={styled} overlay={overlay} shadow={false} clashes={12} clashO={1} resolved={1} status={1} prioIn={[1, 1, 1]} nowO={1} now={nowT} />
         </div>
       </div>
     </AbsoluteFill>

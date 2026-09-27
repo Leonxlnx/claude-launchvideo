@@ -23,8 +23,8 @@ export const DAYS = [
   { dow: 'Thu', date: 17 },
   { dow: 'Fri', date: 18 },
 ];
-export const TODAY = 2; // Wed 16
-export const NOW = 10 + 24 / 60; // 10:24
+export const TODAY = 0; // Mon 14 — planning the week ahead
+export const NOW = 8 + 42 / 60; // 08:42
 export const H0 = 8.5; // first hour shown
 export const H1 = 19.5; // last hour shown
 
@@ -138,19 +138,21 @@ export const fmt = (h: number) => {
 };
 
 // The week as it stands at the end of the feature section (Roadmap moved to Fri,
-// All-hands ran 30 min over and Wednesday afternoon re-flowed).
+// Monday's design review ran 30 min over and the rest of Monday re-flowed).
 export const FINAL: Ev[] = AFTER.map((e) => {
   switch (e.id) {
     case 'th-road':
       return { ...e, day: 4, start: 15, end: 16 };
-    case 'we-all':
+    case 'mo-design':
       return { ...e, end: 14.5 };
-    case 'we-budget':
-      return { ...e, start: 14.5, end: 15.25 };
-    case 'we-onb':
-      return { ...e, start: 15.25, end: 16.25 };
-    case 'we-qbr':
-      return { ...e, start: 16.25, end: 17.2 };
+    case 'mo-maya':
+      return { ...e, start: 14.5, end: 15 };
+    case 'mo-road':
+      return { ...e, start: 15, end: 16 };
+    case 'mo-metric':
+      return { ...e, start: 16, end: 16.5 };
+    case 'mo-int':
+      return { ...e, start: 16.5, end: 17.5 };
     default:
       return e;
   }

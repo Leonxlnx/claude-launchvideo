@@ -5,6 +5,7 @@ import { E, mix, prog, spr, SPR, tw } from '../lib/anim';
 import { Words } from '../fx/Words';
 import { CUE } from '../timeline';
 import { ACT1, RAIN, RainBlock } from './act1-data';
+import { fmt, NOW } from '../app/data';
 
 // ACT 1 — "Your week doesn't fit."
 // A red dot (now) draws the day, meetings rain in, the headline overflows the frame,
@@ -24,6 +25,8 @@ const Block: React.FC<{ b: RainBlock; f: number }> = ({ b, f }) => {
   const rot = (1 - fall) * b.rot;
   const x = b.day * colW + 6 + b.jx * 0.25;
   const h = b.dur * hourH - 6;
+  // no titles peeking around the headline
+  const underHeadline = x < 1320 && x + colW > 600 && y0 < 470 && y0 + h > 280;
   return (
     <div
       style={{
@@ -44,9 +47,9 @@ const Block: React.FC<{ b: RainBlock; f: number }> = ({ b, f }) => {
         overflow: 'hidden',
       }}
     >
-      <div style={{ fontSize: 22, fontWeight: 580, letterSpacing: '-0.015em', whiteSpace: 'nowrap' }}>{b.title}</div>
-      {h > 60 && (
-        <div style={{ fontFamily: FONT.mono, fontSize: 15, marginTop: 4, color: b.ink ? 'rgba(255,255,255,0.55)' : C.mute }}>
+      {!underHeadline && <div style={{ fontSize: 22, fontWeight: 580, letterSpacing: '-0.015em', whiteSpace: 'nowrap' }}>{b.title}</div>}
+      {h > 60 && !underHeadline && (
+        <div style={{ fontFamily: FONT.sans, fontVariantNumeric: 'tabular-nums', fontWeight: 460, fontSize: 16, marginTop: 4, color: b.ink ? 'rgba(255,255,255,0.55)' : C.mute }}>
           {String(Math.floor(b.start)).padStart(2, '0')}:{b.start % 1 ? '30' : '00'}
         </div>
       )}
@@ -55,7 +58,7 @@ const Block: React.FC<{ b: RainBlock; f: number }> = ({ b, f }) => {
 };
 
 const HourLines: React.FC<{ f: number }> = ({ f }) => {
-  const hours = [6, 7, 8, 9, 10, 11, 12, 13, 14];
+  const hours = [5, 6, 7, 8, 9, 10, 11, 12, 13];
   return (
     <>
       {hours.map((h) => {
@@ -78,10 +81,12 @@ const HourLines: React.FC<{ f: number }> = ({ f }) => {
             <div
               style={{
                 position: 'absolute',
-                left: 34,
+                left: 84,
                 top: y + 10,
-                fontFamily: FONT.mono,
-                fontSize: 17,
+                fontFamily: FONT.sans,
+                fontVariantNumeric: 'tabular-nums',
+                fontWeight: 460,
+                fontSize: 18,
                 color: C.mute,
                 opacity: prog(f, start + 10, start + 34) * mix(1, 0.35, prog(f, CUE.rainStart, CUE.doesntFit, E.smooth)),
               }}
@@ -117,7 +122,13 @@ export const Act1Fit: React.FC = () => {
   const push = tw(f, 0, CUE.implodeStart, 1, 1.07, E.smooth);
 
   // dot
-  const dotIn = spr(f, CUE.dotIn, SPR.pop);
+  // the dot is there from the first frame and ticks on every beat until the headline arrives
+  let tick = 0;
+  for (let k = 1; k < 4; k++) {
+    const t = f - k * 30;
+    if (t >= 0 && t < 14) tick = Math.max(tick, Math.sin((t / 14) * Math.PI) * (k === 1 ? 0.3 : 0.18));
+  }
+  const dotIn = 1 + tick;
   const lineP = prog(f, CUE.lineDraw, CUE.lineDraw + 40, E.out);
   const lineRetract = prog(f, CUE.implodeStart, CUE.silence, E.in);
   const lineW = 1920 * lineP * (1 - lineRetract);
@@ -128,7 +139,7 @@ export const Act1Fit: React.FC = () => {
   const line1Y = tw(f, CUE.doesntFit - 6, CUE.doesntFit + 16, 0, -40, E.out);
 
   // rain blur grows as the pile gets dense (depth of field behind the type)
-  const rainBlur = tw(f, CUE.yourWeek, CUE.doesntFit + 20, 0, 3.5, E.smooth);
+  const rainBlur = tw(f, CUE.rainStart, CUE.doesntFit + 20, 0, 3.5, E.smooth);
   const rainDim = tw(f, CUE.doesntFit, CUE.doesntFit + 20, 1, 0.55, E.smooth);
 
   return (
@@ -153,6 +164,26 @@ export const Act1Fit: React.FC = () => {
             opacity: tw(f, CUE.yourWeek, CUE.doesntFit, 0, 1, E.smooth),
           }}
         />
+        {/* now label (same pill as in the app) */}
+        <div
+          style={{
+            position: 'absolute',
+            left: 78,
+            top: nowY - 16,
+            padding: '5px 9px',
+            borderRadius: 8,
+            background: C.red,
+            color: '#fff',
+            fontFamily: FONT.sans,
+            fontVariantNumeric: 'tabular-nums',
+            fontSize: 18,
+            fontWeight: 600,
+            opacity: prog(f, CUE.lineDraw + 16, CUE.lineDraw + 30) * (1 - lineRetract),
+            transform: `translateX(${(1 - prog(f, CUE.lineDraw + 16, CUE.lineDraw + 34, E.out)) * 24}px)`,
+          }}
+        >
+          {fmt(NOW)}
+        </div>
         {/* now line */}
         <div style={{ position: 'absolute', left: 960 - lineW / 2, top: nowY - 1.5, width: lineW, height: 3, background: C.red }} />
         {/* line 1 */}
@@ -165,7 +196,7 @@ export const Act1Fit: React.FC = () => {
             textAlign: 'center',
             fontFamily: FONT.sans,
             fontSize: 128,
-            fontWeight: 590,
+            fontWeight: 600,
             letterSpacing: '-0.05em',
             color: C.ink,
             lineHeight: 1,
@@ -183,8 +214,8 @@ export const Act1Fit: React.FC = () => {
             textAlign: 'center',
             fontFamily: FONT.sans,
             fontSize: 430,
-            fontWeight: 640,
-            letterSpacing: '-0.06em',
+            fontWeight: 600,
+            letterSpacing: '-0.055em',
             color: C.ink,
             lineHeight: 0.9,
             whiteSpace: 'nowrap',
