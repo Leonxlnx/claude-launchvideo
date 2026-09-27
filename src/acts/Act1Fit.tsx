@@ -1,7 +1,7 @@
 import React from 'react';
 import { AbsoluteFill, useCurrentFrame } from 'remotion';
 import { C, FONT } from '../brand/tokens';
-import { E, mix, prog, spr, SPR, tw } from '../lib/anim';
+import { E, mix, prog, tw } from '../lib/anim';
 import { Words } from '../fx/Words';
 import { CUE } from '../timeline';
 import { ACT1, RAIN, RainBlock } from './act1-data';

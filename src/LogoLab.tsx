@@ -6,7 +6,7 @@ const RED = '#EC2A3A';
 
 // V1: tall block + square + dot
 const MarkA: React.FC<{ s: number; red?: string }> = ({ s, red = RED }) => {
-  const g = 8, r = 13;
+  const r = 13;
   return (
     <svg width={s} height={s} viewBox="0 0 100 100">
       <rect x={0} y={0} width={46} height={100} rx={r} fill={INK} />

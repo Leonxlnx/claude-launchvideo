@@ -14,7 +14,6 @@ import { APP_VIEW, WORD } from './Act2Mark';
 // its red period becomes the mark's dot; lockup.
 
 const L = (abs: number) => abs - ACT.end.from;
-const OV = 80; // overscan for blurred layers
 
 // ---- quilt of weeks -------------------------------------------------------------------
 const PITCH = { x: GRID.w + 150, y: GRID.h + 150 };

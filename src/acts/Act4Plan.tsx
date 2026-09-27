@@ -1,9 +1,9 @@
 import React from 'react';
 import { AbsoluteFill, Easing, useCurrentFrame } from 'remotion';
-import { C, FONT } from '../brand/tokens';
-import { E, mix, prog, rand, spr, tw } from '../lib/anim';
+import { C } from '../brand/tokens';
+import { E, mix, prog, rand } from '../lib/anim';
 import { ACT, CUE } from '../timeline';
-import { APP, CalendarApp, COL, EventBlock, evRect, GRID, HOUR, ICON, Rect } from '../app/CalendarApp';
+import { APP, CalendarApp, COL, EventBlock, evRect, GRID, HOUR, Rect } from '../app/CalendarApp';
 import { AFTER, BEFORE, Ev, H0, NOW, TODAY } from '../app/data';
 import { APP_VIEW } from './Act2Mark';
 

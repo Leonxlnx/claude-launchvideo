@@ -556,7 +556,7 @@ export const GridLines: React.FC<{ reveal?: number }> = ({ reveal = 1 }) => {
   for (let h = Math.ceil(H0); h < H1; h++) hours.push(h);
   return (
     <>
-      {hours.map((h, i) => (
+      {hours.map((h) => (
         <div
           key={h}
           style={{

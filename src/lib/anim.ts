@@ -43,7 +43,6 @@ export const prog = (frame: number, from: number, to: number, ease: Ease = E.out
 
 export const mix = (a: number, b: number, t: number) => a + (b - a) * t;
 
-export const clamp01 = (t: number) => Math.max(0, Math.min(1, t));
 
 export const SPR: Record<string, Partial<SpringConfig>> = {
   snap: { damping: 18, stiffness: 260, mass: 0.7 }, // locks into place w/ a small overshoot
