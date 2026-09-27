@@ -5,7 +5,9 @@ Everything you see and hear is generated from code in this repo. The picture is 
 [Remotion](https://www.remotion.dev) (React → frames), and the soundtrack is synthesized in Python.
 It uses no stock footage, no samples and no templates.
 
-**Watch:** [`video/tessel-launch.mp4`](video/tessel-launch.mp4) (1920×1080, 60 fps, stereo AAC).
+[![Tessel launch film](video/poster.jpg)](video/tessel-launch.mp4)
+
+**Watch:** [`video/tessel-launch.mp4`](video/tessel-launch.mp4) (33 s, 1920×1080, 60 fps, H.264 with temporal motion blur, stereo AAC 320 kb/s).
 
 ---
 
@@ -43,9 +45,9 @@ It reads `out/cues.json`, which is exported from the **same timeline the picture
 so every tick, snap, key click and block landing sits on its exact frame.
 
 - 120 BPM, A♭ major (IV – I/3 – vi – V), one bar per chord.
-- A soft Swiss-clock tick-tock is the sonic signature (intro and breakdown).
+- A tuned Swiss-clock tick-tock (A♭7 / E♭7) is the sonic signature: it starts the film, keeps time through the logo hold and ends it.
 - The drops sit on the ink flood (0:06) and on the fitting (0:14). The resolution lands on the "fits." snap (0:28).
-- Mastered to −14 LUFS integrated with a −1 dBFS ceiling.
+- Mastered to −14 LUFS integrated, with a true-peak ceiling of −1 dBTP measured after the AAC encode.
 
 ## Run it
 
@@ -88,6 +90,7 @@ scripts/
   soundtrack.py        score + sound design synthesizer
   render.sh            render (optionally motion-blurred) + ffmpeg mux + sync check
   measure-speed.py     optical flow → motion-blur samples per frame
+  make-backdrops.py    pre-dithered glow and table backdrops (public/fx/)
   accumulate.py        averages sub-frames into the motion-blurred master
   check-sync.py        verifies audio/picture alignment in a rendered file
   audio_balance.py     octave-band spectrum comparison
