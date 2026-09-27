@@ -1,0 +1,6 @@
+node_modules/
+out/*.png
+out/frames/
+.DS_Store
+*.log
+/tmp/
