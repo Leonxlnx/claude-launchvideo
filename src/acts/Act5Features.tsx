@@ -122,7 +122,7 @@ const r5 = (h: number) => Math.round(h * 12) / 12; // labels roll in 5-minute st
 const nowAt = (t: number) =>
   t < F3 + 12
     ? mix(NOW, 13.6, prog(t, F3 - 16, F3 + 12, A5.WHIP)) // the clock races with the descent
-    : 13.6 + 0.7 * (1 - (1 - clamp01((t - F3 - 12) / (END - F3 - 12))) ** 2); // then eases to 14:18 (Act 6's clock)
+    : 13.6 + 0.7 * (1 - (1 - clamp01((t - F3 - 12) / (LAST - F3 - 12))) ** 2); // then eases to 14:18 (Act 6's clock)
 const roadMove = (t: number) => prog(t, F1 + 36, F1 + 60, E.smooth);
 const designEnd = (t: number) => mix(Math.max(14, nowAt(t) + 0.02), 14.5, prog(t, F3 + 60, F3 + 72, E.glide));
 const chainShift = (t: number) => prog(t, F3 + 62, F3 + 75, E.glide);
